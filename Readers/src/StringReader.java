@@ -3,16 +3,11 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class StringReader implements Reader<String> {
-	private int nbStrings;
 	private String msg;
 	private ProcessStatus status = ProcessStatus.REFILL;
 	private final ByteBuffer size_buffer = ByteBuffer.allocate(Integer.BYTES);
 	private ByteBuffer msg_buffer;
 	private static final Charset UTF8 = StandardCharsets.UTF_8;
-
-	public StringReader(int nbStrings) {
-		this.nbStrings = nbStrings;
-	}
 	
 	@Override
 	public ProcessStatus process(ByteBuffer bb) {

@@ -5,8 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,8 +19,8 @@ public class ServerChatFusion {
 		private final ArrayDeque<Message> queue = new ArrayDeque<>();
 		private final ServerChatFusion server;
 		private boolean closed = false;
-		private boolean authenticated = false;
-		private StringReader stringReader;
+		private String name = null;
+		private Reader reader;
 		private byte currentOpCode = -1;
 		
 		private Context(ServerChatFusion server, SelectionKey key) {
@@ -42,18 +41,36 @@ public class ServerChatFusion {
 			if (currentOpCode == -1) {
 				currentOpCode = bufferIn.get();
 				bufferIn.compact();
+				createReader();
 			}
-			if (!authenticated) {
+			var status = reader.process(bufferIn);
+			if (status == Reader.ProcessStatus.ERROR) {
+				currentOpCode = -1;
+			}
+			if (status == Reader.ProcessStatus.REFILL) {
+				return;
+			}
+			if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) {
 				switch(currentOpCode) {
-					case 0: break;
-					case 1: break;
-				}
-			} else {
-				switch(currentOpCode) {
-					case 4: break;
+					case 0: var name = ((List<String>) reader.get()).get(0);
+					if (!server.clients.containsKey(name)) {
+						server.clients.put(name, null);
+						this.name = name;
+						fillValidConnexion();
+						break;
+					} bufferOut.put((byte) 3); break;
+					case 1: var strings = (List<String>) reader.get(); name = strings.get(0); var password = strings.get(1);
+					if (!server.clients.containsKey(name)) {
+						server.clients.put(name, password);
+						this.name = name;
+						fillValidConnexion();
+						break;
+					} bufferOut.put((byte) 3); break;
+					case 4: strings = (List<String>) reader.get(); server.broadcast(new Message(strings.get(1), strings.get(2))); break;
 					case 5: break;
 				}
 			}
+			currentOpCode = -1;
 		}
 
 		/**
@@ -62,7 +79,9 @@ public class ServerChatFusion {
 		 * @param msg
 		 */
 		public void queueMessage(Message msg) {
-			//TODO
+			queue.add(msg);
+			processOut();
+			updateInterestOps();
 		}
 
 		/**
@@ -70,7 +89,24 @@ public class ServerChatFusion {
 		 *
 		 */
 		private void processOut() {
-			//TODO
+			var msg = queue.peekFirst();
+			if (msg == null) {
+				return;
+			}
+			var login_buffer = UTF8.encode(msg.getLogin());
+			var msg_buffer = UTF8.encode(msg.getText());
+			var servername_buffer = UTF8.encode(server.serverName);
+			if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
+				return;
+			}
+			queue.removeFirst();
+			bufferOut.put((byte) 4);
+			bufferOut.putInt(servername_buffer.remaining());
+			bufferOut.put(servername_buffer);
+			bufferOut.putInt(login_buffer.remaining());
+			bufferOut.put(login_buffer);
+			bufferOut.putInt(msg_buffer.remaining());
+			bufferOut.put(msg_buffer);
 		}
 
 		/**
@@ -83,7 +119,18 @@ public class ServerChatFusion {
 		 */
 
 		private void updateInterestOps() {
-			//TODO
+			var ops = 0;
+			if (!closed && bufferIn.position() != bufferIn.limit()) {
+				ops|=SelectionKey.OP_READ;
+			}
+			if (bufferOut.position() > 0) {
+				ops|=SelectionKey.OP_WRITE;
+			}
+			if (ops == 0) {
+				silentlyClose();
+				return;
+			}
+			key.interestOps(ops);
 		}
 
 		private void silentlyClose() {
@@ -103,13 +150,15 @@ public class ServerChatFusion {
 		 * @throws IOException
 		 */
 		private void doRead() throws IOException {
-			//TODO
 			if (sc.read(bufferIn) == -1) {
 				logger.warning("Client closed connexion");
 				closed = true;
 				updateInterestOps();
 				return;
 			}
+			processIn();
+			processOut();
+			updateInterestOps();
 		}
 
 		/**
@@ -123,8 +172,32 @@ public class ServerChatFusion {
 
 		private void doWrite() throws IOException {
 			//TODO
+			bufferOut.flip();
+			var length_write = sc.write(bufferOut);
+			if (length_write == 0) {
+				logger.warning("Selector lied to me!");
+				return;
+			}
+			bufferOut.compact();
+			processOut();
+			processIn();
+			updateInterestOps();
 		}
 
+		private void createReader() {
+			switch (currentOpCode) {
+				case 0 -> reader = new ListStringReader(1);
+				case 1 -> reader = new ListStringReader(2);
+				case 4 -> reader = new ListStringReader(3);
+				case 5 -> reader = new ListStringReader(5);
+			}
+		}
+
+		private void fillValidConnexion() {
+			bufferOut.put((byte) 2);
+			bufferOut.putInt(server.serverName.length());
+			bufferOut.put(UTF8.encode(server.serverName));
+		}
 	}
 
 	private static final int BUFFER_SIZE = 10000;
@@ -136,6 +209,7 @@ public class ServerChatFusion {
 	private final String serverName;
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
+	private final Map<String, String> clients = new HashMap<>();
 
 	public ServerChatFusion(String name, int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
@@ -269,7 +343,7 @@ public class ServerChatFusion {
 		if (args[0].length() > 96) {
 			throw new IllegalArgumentException("Name length > 96");
 		}
-		var port = Integer.parseInt(args[0]);
+		var port = Integer.parseInt(args[1]);
 		if (port < 0 || port > 65535) {
 			throw new IllegalArgumentException("Port number is not between 0 and 65535");
 		}
