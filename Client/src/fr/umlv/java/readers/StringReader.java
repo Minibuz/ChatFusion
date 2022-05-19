@@ -5,76 +5,70 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class StringReader implements Reader<String> {
-
-    private enum State {
-        DONE, WAITING, ERROR
-    };
-    private final Charset UTF_8 = StandardCharsets.UTF_8;
-    private final ByteBuffer internalBuffer = ByteBuffer.allocate(1024); // write-mode
-    private State state = State.WAITING;
-    private int size = 0;
-    private String value;
-
-    @Override
-    public ProcessStatus process(ByteBuffer bb) {
-        if (state == State.DONE || state == State.ERROR) {
+	private String msg;
+	private ProcessStatus status = ProcessStatus.REFILL;
+	private final ByteBuffer size_buffer = ByteBuffer.allocate(Integer.BYTES);
+	private ByteBuffer msg_buffer;
+	private static final Charset UTF8 = StandardCharsets.UTF_8;
+	
+	@Override
+	public ProcessStatus process(ByteBuffer bb) {
+        if (status == ProcessStatus.DONE || status == ProcessStatus.ERROR) {
             throw new IllegalStateException();
         }
-        System.out.println(bb);
-        bb.flip();
-        try {
-            if (bb.remaining() <= internalBuffer.remaining()) {
-                internalBuffer.put(bb);
-            } else {
-                var oldLimit = bb.limit();
-                bb.limit(internalBuffer.remaining());
-                internalBuffer.put(bb);
-                bb.limit(oldLimit);
-            }
-        } finally {
-            bb.compact();
-        }
+        fillBuffer(bb, size_buffer);
+	    if (size_buffer.hasRemaining()) {
+		    status = ProcessStatus.REFILL;
+			return status;
+	    }
+	    if (msg_buffer == null) {
+	    	size_buffer.flip();
+	    	var size = size_buffer.getInt();
+	    	if (size < 0 || size > 1024) {
+	    		status = ProcessStatus.ERROR;
+	    		return status;
+	    	}
+	    	msg_buffer = ByteBuffer.allocate(size*Byte.BYTES);
+	    }
+	    fillBuffer(bb, msg_buffer);
+	    if (msg_buffer.hasRemaining()) {
+	    	return ProcessStatus.REFILL;
+	    }
+	    status = ProcessStatus.DONE;
+	    msg_buffer.flip();
+	    msg = UTF8.decode(msg_buffer).toString();
+	    return status;
+	}
+	
+	private void fillBuffer(ByteBuffer buffer, ByteBuffer toFill) {
+		buffer.flip();
+		try {
+	        if (buffer.remaining() <= toFill.remaining()) {
+	            toFill.put(buffer);
+	        } else {
+	        	var oldLimit = buffer.limit();
+	            buffer.limit(toFill.remaining());
+	            toFill.put(buffer);
+	            buffer.limit(oldLimit);
+	        }
+		} finally {
+			buffer.compact();
+		}
+	}
 
-        internalBuffer.flip();
-        if(size == 0) {
-            if(internalBuffer.remaining() < Integer.BYTES) {
-                internalBuffer.compact();
-                return ProcessStatus.REFILL;
-            }
-            size = internalBuffer.getInt();
-            if(size <= 0 || size > 1024) {
-                return ProcessStatus.ERROR;
-            }
-        }
-        if(internalBuffer.remaining() >= size) {
-            state = State.DONE;
+	@Override
+	public String get() {
+		if (status != ProcessStatus.DONE) {
+			throw new IllegalStateException("Not right process status.");
+		}
+		return msg;
+	}
 
-            var oldLimit = internalBuffer.limit();
-            internalBuffer.limit(internalBuffer.position() + size);
-            value = UTF_8.decode(internalBuffer).toString();
-            internalBuffer.limit(oldLimit);
-            bb.put(internalBuffer);
+	@Override
+	public void reset() {
+		status = ProcessStatus.REFILL;
+		size_buffer.clear();
+		msg_buffer = null;
+	}
 
-            internalBuffer.compact();
-            return ProcessStatus.DONE;
-        }
-
-        internalBuffer.compact();
-        return ProcessStatus.REFILL;
-    }
-
-    @Override
-    public String get() {
-        if (state != State.DONE) {
-            throw new IllegalStateException();
-        }
-        return value;
-    }
-
-    @Override
-    public void reset() {
-        state = State.WAITING;
-        size = 0;
-        internalBuffer.clear();
-    }
 }

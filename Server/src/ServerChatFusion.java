@@ -38,21 +38,24 @@ public class ServerChatFusion {
 		 */
 		private void processIn() {
 			//TODO
-			bufferIn.flip();
 			if (currentOpCode == -1) {
+				bufferIn.flip();
 				currentOpCode = bufferIn.get();
 				bufferIn.compact();
 				createReader();
+				if (currentOpCode == -1) {
+					return;
+				}
 			}
 			var status = reader.process(bufferIn);
 			if (status == Reader.ProcessStatus.ERROR) {
 				currentOpCode = -1;
-			}
-			if (status == Reader.ProcessStatus.REFILL) {
-				bufferIn.compact();
 				return;
 			}
-			if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) {
+			if (status == Reader.ProcessStatus.REFILL) {
+				return;
+			}
+			if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
 				switch(currentOpCode) {
 					case 0: var name = ((List<String>) reader.get()).get(0);
 					if (!server.clients.containsKey(name)) {
@@ -72,7 +75,6 @@ public class ServerChatFusion {
 					case 5: break;
 				}
 			}
-			bufferIn.compact();
 			currentOpCode = -1;
 		}
 
@@ -82,6 +84,9 @@ public class ServerChatFusion {
 		 * @param msg
 		 */
 		public void queueMessage(Message msg) {
+			if (name == null) { // Not connected : can't see messages
+				return;
+			}
 			queue.add(msg);
 			processOut();
 			updateInterestOps();
@@ -122,22 +127,17 @@ public class ServerChatFusion {
 		 */
 
 		private void updateInterestOps() {
-			var ops = 0;
-			if (!closed && bufferIn.position() != bufferIn.limit()) {
-				ops|=SelectionKey.OP_READ;
-			}
-			if (bufferOut.position() > 0) {
-				ops|=SelectionKey.OP_WRITE;
-			}
-			if (ops == 0) {
-				silentlyClose();
-				return;
-			}
-			key.interestOps(ops);
+			int ops = 0;
+			if(!closed && bufferIn.hasRemaining()) ops |= SelectionKey.OP_READ;
+			if(bufferOut.position() != 0) ops |= SelectionKey.OP_WRITE;
+
+			if(ops == 0 || !key.isValid()) silentlyClose();
+			else key.interestOps(ops);
 		}
 
 		private void silentlyClose() {
 			try {
+				server.clients.remove(name);
 				sc.close();
 			} catch (IOException e) {
 				// ignore exception
@@ -160,7 +160,6 @@ public class ServerChatFusion {
 				return;
 			}
 			processIn();
-			processOut();
 			updateInterestOps();
 		}
 
@@ -175,6 +174,7 @@ public class ServerChatFusion {
 
 		private void doWrite() throws IOException {
 			//TODO
+			processOut();
 			bufferOut.flip();
 			var length_write = sc.write(bufferOut);
 			if (length_write == 0) {
@@ -182,13 +182,10 @@ public class ServerChatFusion {
 				return;
 			}
 			bufferOut.compact();
-			processOut();
-			processIn();
 			updateInterestOps();
 		}
 
 		private void createReader() {
-			System.out.println(currentOpCode);
 			switch (currentOpCode) {
 				case 0 -> reader = new ListStringReader(1);
 				case 1 -> reader = new ListStringReader(2);
@@ -322,6 +319,7 @@ public class ServerChatFusion {
 	private void silentlyClose(SelectionKey key) {
 		Channel sc = (Channel) key.channel();
 		try {
+			clients.remove(((Context) key.attachment()).name);
 			sc.close();
 		} catch (IOException e) {
 			// ignore exception

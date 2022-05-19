@@ -44,26 +44,28 @@ public class Context {
      *
      */
     public void processIn() {
-        bufferIn.flip();
         if (currentOpCode == -1) {
+            bufferIn.flip();
             currentOpCode = bufferIn.get();
             bufferIn.compact();
             createReader();
+            if (currentOpCode == -1) {
+                return;
+            }
         }
         var status = reader.process(bufferIn);
         if (status == Reader.ProcessStatus.ERROR) {
             currentOpCode = -1;
+            return;
         }
         if (status == Reader.ProcessStatus.REFILL) {
-            bufferIn.compact();
             return;
         }
         switch(currentOpCode) {
-            case 2 : var strings = (List<String>) reader.get(); serverName = strings.get(0); connected = ConnectionStatut.CONNECTED; break;
+            case 2 : var strings = (List<String>) reader.get(); serverName = strings.get(0); connected = ConnectionStatut.CONNECTED; processOut(); break;
             case 3 : connected = ConnectionStatut.NOT_CONNECTED; break;
             case 4 : strings = (List<String>) reader.get(); System.out.println(strings.get(1) + " : " + strings.get(2)); break;
         }
-        bufferIn.compact();
         currentOpCode = -1;
     }
 
@@ -175,7 +177,6 @@ public class Context {
     }
 
     private void createReader() {
-        System.out.println(currentOpCode);
         switch (currentOpCode) {
             case 2 -> reader = new ListStringReader(1);
             case 4 -> reader = new ListStringReader(3);
