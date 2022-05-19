@@ -90,7 +90,7 @@ public class Client {
     public void launch() throws IOException {
         sc.configureBlocking(false);
         var key = sc.register(selector, SelectionKey.OP_CONNECT);
-        uniqueContext = new Context(key, this.password != null);
+        uniqueContext = new Context(key, this.password != null, login);
         key.attach(uniqueContext);
         commands = new Commands(uniqueContext);
         sc.connect(serverAddress);

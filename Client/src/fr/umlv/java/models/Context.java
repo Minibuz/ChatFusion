@@ -1,15 +1,16 @@
 package fr.umlv.java.models;
 
-import fr.umlv.java.readers.MessageReader;
+import fr.umlv.java.readers.ListStringReader;
 import fr.umlv.java.readers.Reader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.List;
 
 public class Context {
     static private int BUFFER_SIZE = 10_000;
@@ -21,12 +22,18 @@ public class Context {
     private ConnectionStatut connected = ConnectionStatut.NOT_CONNECTED;
     private boolean closed = false;
     private boolean logged = false;
-    private MessageReader messageReader = new MessageReader();
+    private Reader reader;
+    private final String login;
+    private byte currentOpCode = -1;
+    private String serverName;
 
-    public Context(SelectionKey key, Boolean logged) {
+    static private final Charset UTF_8 = StandardCharsets.UTF_8;
+
+    public Context(SelectionKey key, Boolean logged, String login) {
         this.key = key;
         this.sc = (SocketChannel) key.channel();
         this.logged = logged;
+        this.login = login;
     }
 
     /**
@@ -37,21 +44,27 @@ public class Context {
      *
      */
     public void processIn() {
-        for (;;) {
-            Reader.ProcessStatus status = messageReader.process(bufferIn);
-            switch (status) {
-                case DONE:
-                    var value = messageReader.get();
-                    System.out.println(value.getLogin() + " : " + value.getTexte());
-                    messageReader.reset();
-                    break;
-                case REFILL:
-                    return;
-                case ERROR:
-                    silentlyClose();
-                    return;
-            }
+        bufferIn.flip();
+        if (currentOpCode == -1) {
+            currentOpCode = bufferIn.get();
+            bufferIn.compact();
+            createReader();
         }
+        var status = reader.process(bufferIn);
+        if (status == Reader.ProcessStatus.ERROR) {
+            currentOpCode = -1;
+        }
+        if (status == Reader.ProcessStatus.REFILL) {
+            bufferIn.compact();
+            return;
+        }
+        switch(currentOpCode) {
+            case 2 : var strings = (List<String>) reader.get(); serverName = strings.get(0); connected = ConnectionStatut.CONNECTED; break;
+            case 3 : connected = ConnectionStatut.NOT_CONNECTED; break;
+            case 4 : strings = (List<String>) reader.get(); System.out.println(strings.get(1) + " : " + strings.get(2)); break;
+        }
+        bufferIn.compact();
+        currentOpCode = -1;
     }
 
     /**
@@ -69,23 +82,35 @@ public class Context {
      * Try to fill bufferOut from the message queue
      */
     public void processOut() {
-        if(connected != ConnectionStatut.CONNECTED && connected != ConnectionStatut.CONNECTION) {
-            //bufferOut.putInt(1);
+        if (connected == ConnectionStatut.CONNECTION) {
+            return;
         }
-
-        while(!queue.isEmpty()) {
-            var message = queue.peek();
-            var bufferLogin = UTF_8.encode(message.getLogin());
-            var bufferTexte = UTF_8.encode(message.getTexte());
-            if(bufferOut.remaining() < Integer.BYTES * 2 + bufferLogin.remaining() + bufferTexte.remaining()) {
-                break;
-            }
+        if(connected != ConnectionStatut.CONNECTED) {
+            bufferOut.put((byte) 0);
+            var bufferLogin = UTF_8.encode(login);
             bufferOut.putInt(bufferLogin.remaining())
                     .put(bufferLogin);
-            bufferOut.putInt(bufferTexte.remaining())
-                    .put(bufferTexte);
-            queue.poll();
+            connected = ConnectionStatut.CONNECTION;
+            return;
         }
+        var msg = queue.peekFirst();
+        if (msg == null) {
+            return;
+        }
+        var login_buffer = UTF_8.encode(msg.getLogin());
+        var msg_buffer = UTF_8.encode(msg.getTexte());
+        var servername_buffer = UTF_8.encode(serverName);
+        if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
+            return;
+        }
+        queue.removeFirst();
+        bufferOut.put((byte) 4);
+        bufferOut.putInt(servername_buffer.remaining());
+        bufferOut.put(servername_buffer);
+        bufferOut.putInt(login_buffer.remaining());
+        bufferOut.put(login_buffer);
+        bufferOut.putInt(msg_buffer.remaining());
+        bufferOut.put(msg_buffer);
     }
 
     /**
@@ -147,5 +172,14 @@ public class Context {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         key.interestOps(SelectionKey.OP_READ);
+    }
+
+    private void createReader() {
+        System.out.println(currentOpCode);
+        switch (currentOpCode) {
+            case 2 -> reader = new ListStringReader(1);
+            case 4 -> reader = new ListStringReader(3);
+            default -> currentOpCode = -1;
+        }
     }
 }

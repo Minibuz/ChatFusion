@@ -38,6 +38,7 @@ public class ServerChatFusion {
 		 */
 		private void processIn() {
 			//TODO
+			bufferIn.flip();
 			if (currentOpCode == -1) {
 				currentOpCode = bufferIn.get();
 				bufferIn.compact();
@@ -48,6 +49,7 @@ public class ServerChatFusion {
 				currentOpCode = -1;
 			}
 			if (status == Reader.ProcessStatus.REFILL) {
+				bufferIn.compact();
 				return;
 			}
 			if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) {
@@ -70,6 +72,7 @@ public class ServerChatFusion {
 					case 5: break;
 				}
 			}
+			bufferIn.compact();
 			currentOpCode = -1;
 		}
 
@@ -185,18 +188,21 @@ public class ServerChatFusion {
 		}
 
 		private void createReader() {
+			System.out.println(currentOpCode);
 			switch (currentOpCode) {
 				case 0 -> reader = new ListStringReader(1);
 				case 1 -> reader = new ListStringReader(2);
 				case 4 -> reader = new ListStringReader(3);
 				case 5 -> reader = new ListStringReader(5);
+				default -> currentOpCode = -1;
 			}
 		}
 
 		private void fillValidConnexion() {
 			bufferOut.put((byte) 2);
-			bufferOut.putInt(server.serverName.length());
-			bufferOut.put(UTF8.encode(server.serverName));
+			var serverBuffer = UTF8.encode(server.serverName);
+			bufferOut.putInt(serverBuffer.remaining());
+			bufferOut.put(serverBuffer);
 		}
 	}
 
