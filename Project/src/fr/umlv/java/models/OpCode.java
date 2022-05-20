@@ -20,7 +20,7 @@ public enum OpCode {
     OpCode(int i) {
     }
 
-    public OpCode getOpCode(int opCodeValue) {
+    public static OpCode getOpCode(int opCodeValue) {
         return switch (opCodeValue) {
             case 0 -> LOGIN_ANONYMOUS;
             case 1 -> LOGIN_PASSWORD;
