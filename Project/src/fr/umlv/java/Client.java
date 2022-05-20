@@ -1,6 +1,6 @@
 package fr.umlv.java;
 
-import fr.umlv.java.models.Context;
+import fr.umlv.java.models.context.ContextClient;
 import fr.umlv.java.models.Commands;
 import fr.umlv.java.models.Message;
 
@@ -25,9 +25,9 @@ public class Client {
     private final String password;
     private final String folder;
     private final Thread console;
-    private Commands commands;
 
-    private Context uniqueContext;
+    private Commands commands;
+    private ContextClient uniqueContextClient;
 
     // Not used since we don't deal with the password for user
     public Client(String address, int port, String folder, String login, String password) throws IOException {
@@ -90,9 +90,9 @@ public class Client {
     public void launch() throws IOException {
         sc.configureBlocking(false);
         var key = sc.register(selector, SelectionKey.OP_CONNECT);
-        uniqueContext = new Context(key, this.password != null, login);
-        key.attach(uniqueContext);
-        commands = new Commands(uniqueContext);
+        uniqueContextClient = new ContextClient(key, this.password != null, login);
+        key.attach(uniqueContextClient);
+        commands = new Commands(uniqueContextClient);
         sc.connect(serverAddress);
 
         console.start();
@@ -110,13 +110,13 @@ public class Client {
     private void treatKey(SelectionKey key) {
         try {
             if (key.isValid() && key.isConnectable()) {
-                uniqueContext.doConnect();
+                uniqueContextClient.doConnect();
             }
             if (key.isValid() && key.isWritable()) {
-                uniqueContext.doWrite();
+                uniqueContextClient.doWrite();
             }
             if (key.isValid() && key.isReadable()) {
-                uniqueContext.doRead();
+                uniqueContextClient.doRead();
             }
         } catch (IOException ioe) {
             // lambda call in select requires to tunnel IOException
