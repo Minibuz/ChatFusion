@@ -3,6 +3,7 @@ package fr.umlv.java.models.context;
 import fr.umlv.java.Client;
 import fr.umlv.java.ServerChatFusion;
 import fr.umlv.java.models.Message;
+import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 
 import java.io.IOException;
@@ -67,24 +68,32 @@ public class ContextServer {
             return;
         }
         if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
+            User user = null;
             switch(currentOpCode) {
-                case 0: var name = ((List<String>) reader.get()).get(0);
-                    if (!server.getClients().containsKey(name)) {
-                        server.getClients().put(name, null);
-                        this.name = name;
+                case 0:
+                    user = (User)reader.get();
+                    if (!server.getClients().containsKey(user.login())) {
+                        server.getClients().put(user.login(), null);
+                        this.name = user.login();
                         fillValidConnexion();
                         break;
-                    } bufferOut.put((byte) 3); break;
-                case 1: var strings = (List<String>) reader.get(); name = strings.get(0); var password = strings.get(1);
-                    if (!server.getClients().containsKey(name)) {
-                        server.getClients().put(name, password);
-                        this.name = name;
+                    }
+                    bufferOut.put((byte) 3);
+                    break;
+                case 1:
+                    user = (User)reader.get();
+                    if (!server.getClients().containsKey(user.login())) {
+                        server.getClients().put(user.login(), user.password());
+                        this.name = user.login();
                         fillValidConnexion();
                         break;
-                    } bufferOut.put((byte) 3); break;
-                case 4: strings = (List<String>) reader.get(); server.broadcast(new Message(strings.get(1), strings.get(2))); break;
+                    }
+                    bufferOut.put((byte) 3);
+                    break;
+                //case 4: strings = (List<String>) reader.get(); server.broadcast(new Message(strings.get(1), strings.get(2))); break;
                 case 5: break;
             }
+            System.out.println(user);
         }
         currentOpCode = -1;
     }
