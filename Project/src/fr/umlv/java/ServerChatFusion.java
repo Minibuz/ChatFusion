@@ -1,6 +1,8 @@
 package fr.umlv.java;
 
 import fr.umlv.java.models.Message;
+import fr.umlv.java.models.context.ContextClient;
+import fr.umlv.java.models.context.ContextServer;
 import fr.umlv.java.readers.ListStringReader;
 import fr.umlv.java.readers.Reader;
 import fr.umlv.java.utils.Helpers;
@@ -18,191 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerChatFusion {
-	static private class Context {
-		private final SelectionKey key;
-		private final SocketChannel sc;
-		private final ByteBuffer bufferIn = ByteBuffer.allocate(BUFFER_SIZE);
-		private final ByteBuffer bufferOut = ByteBuffer.allocate(BUFFER_SIZE);
-		private final ArrayDeque<Message> queue = new ArrayDeque<>();
-		private final ServerChatFusion server;
-		private boolean closed = false;
-		private String name = null;
-		private Reader reader;
-		private byte currentOpCode = -1;
-		
-		private Context(ServerChatFusion server, SelectionKey key) {
-			this.key = key;
-			this.sc = (SocketChannel) key.channel();
-			this.server = server;
-		}
-
-		/**
-		 * Process the content of bufferIn
-		 *
-		 * The convention is that bufferIn is in write-mode before the call to process and
-		 * after the call
-		 *
-		 */
-		private void processIn() {
-			//TODO
-			if (currentOpCode == -1) {
-				bufferIn.flip();
-				currentOpCode = bufferIn.get();
-				bufferIn.compact();
-				reader = Reader.findReader(currentOpCode);
-				if (currentOpCode == -1) {
-					return;
-				}
-			}
-			var status = reader.process(bufferIn);
-			if (status == Reader.ProcessStatus.ERROR) {
-				currentOpCode = -1;
-				return;
-			}
-			if (status == Reader.ProcessStatus.REFILL) {
-				return;
-			}
-			if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
-				switch(currentOpCode) {
-					case 0: var name = ((List<String>) reader.get()).get(0);
-					if (!server.clients.containsKey(name)) {
-						server.clients.put(name, null);
-						this.name = name;
-						fillValidConnexion();
-						break;
-					} bufferOut.put((byte) 3); break;
-					case 1: var strings = (List<String>) reader.get(); name = strings.get(0); var password = strings.get(1);
-					if (!server.clients.containsKey(name)) {
-						server.clients.put(name, password);
-						this.name = name;
-						fillValidConnexion();
-						break;
-					} bufferOut.put((byte) 3); break;
-					case 4: strings = (List<String>) reader.get(); server.broadcast(new Message(strings.get(1), strings.get(2))); break;
-					case 5: break;
-				}
-			}
-			currentOpCode = -1;
-		}
-
-		/**
-		 * Add a message to the message queue, tries to fill bufferOut and updateInterestOps
-		 *
-		 * @param msg
-		 */
-		public void queueMessage(Message msg) {
-			if (name == null) { // Not connected : can't see messages
-				return;
-			}
-			queue.add(msg);
-			processOut();
-			updateInterestOps();
-		}
-
-		/**
-		 * Try to fill bufferOut from the message queue
-		 *
-		 */
-		private void processOut() {
-			var msg = queue.peekFirst();
-			if (msg == null) {
-				return;
-			}
-			var login_buffer = UTF8.encode(msg.getLogin());
-			var msg_buffer = UTF8.encode(msg.getText());
-			var servername_buffer = UTF8.encode(server.serverName);
-			if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
-				return;
-			}
-			queue.removeFirst();
-			bufferOut.put((byte) 4);
-			bufferOut.putInt(servername_buffer.remaining());
-			bufferOut.put(servername_buffer);
-			bufferOut.putInt(login_buffer.remaining());
-			bufferOut.put(login_buffer);
-			bufferOut.putInt(msg_buffer.remaining());
-			bufferOut.put(msg_buffer);
-		}
-
-		/**
-		 * Update the interestOps of the key looking only at values of the boolean
-		 * closed and of both ByteBuffers.
-		 *
-		 * The convention is that both buffers are in write-mode before the call to
-		 * updateInterestOps and after the call. Also it is assumed that process has
-		 * been be called just before updateInterestOps.
-		 */
-
-		private void updateInterestOps() {
-			int ops = 0;
-			if(!closed && bufferIn.hasRemaining()) ops |= SelectionKey.OP_READ;
-			if(bufferOut.position() != 0) ops |= SelectionKey.OP_WRITE;
-
-			if(ops == 0 || !key.isValid()) silentlyClose();
-			else key.interestOps(ops);
-		}
-
-		private void silentlyClose() {
-			try {
-				server.clients.remove(name);
-				sc.close();
-			} catch (IOException e) {
-				// ignore exception
-			}
-		}
-
-		/**
-		 * Performs the read action on sc
-		 *
-		 * The convention is that both buffers are in write-mode before the call to
-		 * doRead and after the call
-		 *
-		 * @throws IOException
-		 */
-		private void doRead() throws IOException {
-			if (sc.read(bufferIn) == -1) {
-				logger.warning("Client closed connexion");
-				closed = true;
-				updateInterestOps();
-				return;
-			}
-			processIn();
-			updateInterestOps();
-		}
-
-		/**
-		 * Performs the write action on sc
-		 *
-		 * The convention is that both buffers are in write-mode before the call to
-		 * doWrite and after the call
-		 *
-		 * @throws IOException
-		 */
-
-		private void doWrite() throws IOException {
-			//TODO
-			processOut();
-			bufferOut.flip();
-			var length_write = sc.write(bufferOut);
-			if (length_write == 0) {
-				logger.warning("Selector lied to me!");
-				return;
-			}
-			bufferOut.compact();
-			updateInterestOps();
-		}
-
-		private void fillValidConnexion() {
-			bufferOut.put((byte) 2);
-			var serverBuffer = UTF8.encode(server.serverName);
-			bufferOut.putInt(serverBuffer.remaining());
-			bufferOut.put(serverBuffer);
-		}
-	}
-
-	private static final int BUFFER_SIZE = 10000;
 	private static final Logger logger = Logger.getLogger(ServerChatFusion.class.getName());
-	private static final Charset UTF8 = StandardCharsets.UTF_8;
 	
 	private final ServerSocketChannel serverSocketChannel;
 	private final Selector selector;
@@ -218,6 +36,14 @@ public class ServerChatFusion {
 		selector = Selector.open();
 		this.queue = new ArrayBlockingQueue<String>(10);
 		this.console = new Thread(this::consoleRun);
+	}
+
+	public String getServerName() {
+		return serverName;
+	}
+
+	public Map<String, String> getClients() {
+		return clients;
 	}
 
 	public void launch() throws IOException {
@@ -290,10 +116,10 @@ public class ServerChatFusion {
 		}
 		try {
 			if (key.isValid() && key.isWritable()) {
-				((Context) key.attachment()).doWrite();
+				((ContextServer) key.attachment()).doWrite();
 			}
 			if (key.isValid() && key.isReadable()) {
-				((Context) key.attachment()).doRead();
+				((ContextServer) key.attachment()).doRead();
 			}
 		} catch (IOException e) {
 			logger.log(Level.INFO, "Connection closed with client due to IOException", e);
@@ -310,13 +136,13 @@ public class ServerChatFusion {
 		}
 		sc.configureBlocking(false);
 		var sk = sc.register(selector, SelectionKey.OP_READ);
-		sk.attach(new Context(this, sk));
+		sk.attach(new ContextServer(this, sk));
 	}
 
 	private void silentlyClose(SelectionKey key) {
 		Channel sc = (Channel) key.channel();
 		try {
-			clients.remove(((Context) key.attachment()).name);
+			clients.remove(((ContextServer) key.attachment()).getName());
 			sc.close();
 		} catch (IOException e) {
 			// ignore exception
@@ -328,10 +154,10 @@ public class ServerChatFusion {
 	 *
 	 * @param msg
 	 */
-	private void broadcast(Message msg) {
+	public void broadcast(Message msg) {
 		for (var key : selector.keys()) {
 			if (key.attachment() != null) {
-				((Context) key.attachment()).queueMessage(msg);
+				((ContextServer) key.attachment()).queueMessage(msg);
 			}
 		}
 	}

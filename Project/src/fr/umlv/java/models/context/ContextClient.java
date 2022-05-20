@@ -1,5 +1,7 @@
-package fr.umlv.java.models;
+package fr.umlv.java.models.context;
 
+import fr.umlv.java.models.ConnectionStatut;
+import fr.umlv.java.models.Message;
 import fr.umlv.java.readers.ListStringReader;
 import fr.umlv.java.readers.Reader;
 
@@ -12,7 +14,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.List;
 
-public class Context {
+public class ContextClient {
+
+    static private final Charset UTF_8 = StandardCharsets.UTF_8;
     static private int BUFFER_SIZE = 10_000;
     private final SelectionKey key;
     private final SocketChannel sc;
@@ -27,9 +31,7 @@ public class Context {
     private byte currentOpCode = -1;
     private String serverName;
 
-    static private final Charset UTF_8 = StandardCharsets.UTF_8;
-
-    public Context(SelectionKey key, Boolean logged, String login) {
+    public ContextClient(SelectionKey key, Boolean logged, String login) {
         this.key = key;
         this.sc = (SocketChannel) key.channel();
         this.logged = logged;

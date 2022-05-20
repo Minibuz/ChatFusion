@@ -1,6 +1,7 @@
 package fr.umlv.java.readers;
 
 import fr.umlv.java.models.OpCode;
+import fr.umlv.java.readers.login.LoginAcceptedReader;
 import fr.umlv.java.readers.login.LoginAnonymousReader;
 
 import java.nio.ByteBuffer;
@@ -18,8 +19,8 @@ public interface Reader<T> {
     static Reader<?> findReader(int value) {
         Reader<?> reader = switch (OpCode.getOpCode(value)) {
             case LOGIN_ANONYMOUS -> new LoginAnonymousReader();
-            case LOGIN_PASSWORD -> throw new IllegalArgumentException("Not supported");
-            case LOGIN_ACCEPTED -> null;
+            case LOGIN_PASSWORD -> throw new IllegalArgumentException("Not supported"); // Even if kinda exist
+            case LOGIN_ACCEPTED -> new LoginAcceptedReader();
             case LOGIN_REFUSED -> null;
             case MESSAGE -> null;
             case MESSAGE_PRIVATE -> null;
