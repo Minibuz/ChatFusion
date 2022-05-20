@@ -1,7 +1,7 @@
 package fr.umlv.java;
 
-import fr.umlv.java.models.Commands;
 import fr.umlv.java.models.Context;
+import fr.umlv.java.models.Commands;
 import fr.umlv.java.models.Message;
 
 import java.io.IOException;
