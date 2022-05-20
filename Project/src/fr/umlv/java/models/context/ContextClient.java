@@ -86,15 +86,14 @@ public class ContextClient {
      * Try to fill bufferOut from the message queue
      */
     public void processOut() {
-        if (connected == ConnectionStatut.CONNECTION) {
-            return;
-        }
-        if(connected != ConnectionStatut.CONNECTED) {
+        if(connected == ConnectionStatut.NOT_CONNECTED) {
             bufferOut.put((byte) 0);
             var bufferLogin = UTF_8.encode(login);
             bufferOut.putInt(bufferLogin.remaining())
                     .put(bufferLogin);
             connected = ConnectionStatut.CONNECTION;
+        }
+        if (connected == ConnectionStatut.CONNECTION) {
             return;
         }
         var msg = queue.peekFirst();
@@ -175,7 +174,7 @@ public class ContextClient {
     public void doConnect() throws IOException {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
-        key.interestOps(SelectionKey.OP_READ);
+        key.interestOps(SelectionKey.OP_WRITE);
     }
 
     private void createReader() {
