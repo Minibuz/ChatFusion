@@ -100,7 +100,7 @@ public class Context {
             return;
         }
         var login_buffer = UTF_8.encode(msg.getLogin());
-        var msg_buffer = UTF_8.encode(msg.getTexte());
+        var msg_buffer = UTF_8.encode(msg.getText());
         var servername_buffer = UTF_8.encode(serverName);
         if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
             return;
