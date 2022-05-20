@@ -49,7 +49,7 @@ public class ServerChatFusion {
 				bufferIn.flip();
 				currentOpCode = bufferIn.get();
 				bufferIn.compact();
-				createReader();
+				reader = Reader.findReader(currentOpCode);
 				if (currentOpCode == -1) {
 					return;
 				}
@@ -190,16 +190,6 @@ public class ServerChatFusion {
 			}
 			bufferOut.compact();
 			updateInterestOps();
-		}
-
-		private void createReader() {
-			switch (currentOpCode) {
-				case 0 -> reader = new ListStringReader(1);
-				case 1 -> reader = new ListStringReader(2);
-				case 4 -> reader = new ListStringReader(3);
-				case 5 -> reader = new ListStringReader(5);
-				default -> currentOpCode = -1;
-			}
 		}
 
 		private void fillValidConnexion() {

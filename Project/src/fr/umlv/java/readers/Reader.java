@@ -1,6 +1,7 @@
 package fr.umlv.java.readers;
 
 import fr.umlv.java.models.OpCode;
+import fr.umlv.java.readers.login.LoginAnonymousReader;
 
 import java.nio.ByteBuffer;
 
@@ -14,10 +15,10 @@ public interface Reader<T> {
 
     public void reset();
 
-    static Reader<?> findGoodReader(int value) {
+    static Reader<?> findReader(int value) {
         Reader<?> reader = switch (OpCode.getOpCode(value)) {
-            case LOGIN_ANONYMOUS -> null;
-            case LOGIN_PASSWORD -> null;
+            case LOGIN_ANONYMOUS -> new LoginAnonymousReader();
+            case LOGIN_PASSWORD -> throw new IllegalArgumentException("Not supported");
             case LOGIN_ACCEPTED -> null;
             case LOGIN_REFUSED -> null;
             case MESSAGE -> null;
@@ -32,6 +33,6 @@ public interface Reader<T> {
             case FUSION_CHANGE_LEADER -> null;
             case FUSION_MERGE -> null;
         };
-        return null;
+        return reader;
     }
 }
