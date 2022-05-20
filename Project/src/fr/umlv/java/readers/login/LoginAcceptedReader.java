@@ -6,9 +6,9 @@ import fr.umlv.java.readers.StringReader;
 
 import java.nio.ByteBuffer;
 
-public class LoginAnonymousReader implements Reader<User> {
+public class LoginAcceptedReader implements Reader<String> {
 
-    private String login;
+    private String serverName;
     private ProcessStatus status = ProcessStatus.REFILL;
     private final StringReader reader = new StringReader();
     @Override
@@ -26,23 +26,23 @@ public class LoginAnonymousReader implements Reader<User> {
             status = ProcessStatus.REFILL;
             return status;
         }
-        login = reader.get();
+        serverName = reader.get();
         status = ProcessStatus.DONE;
         return status;
     }
 
     @Override
-    public User get() {
+    public String get() {
         if (status != ProcessStatus.DONE) {
             throw new IllegalStateException("Not right process status.");
         }
-        return new User(login);
+        return serverName;
     }
 
     @Override
     public void reset() {
         status = ProcessStatus.REFILL;
         reader.reset();
-        login = null;
+        serverName = null;
     }
 }
