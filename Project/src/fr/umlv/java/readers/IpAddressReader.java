@@ -1,11 +1,13 @@
 package fr.umlv.java.readers;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class IpAddressReader implements Reader<String> {
-	private String address;
+public class IpAddressReader implements Reader<InetAddress> {
+	private InetAddress address;
 	private ProcessStatus status = ProcessStatus.REFILL;
 	private final ByteBuffer size_buffer = ByteBuffer.allocate(Byte.BYTES);
 	private ByteBuffer address_buffer;
@@ -36,8 +38,13 @@ public class IpAddressReader implements Reader<String> {
 	    	return ProcessStatus.REFILL;
 	    }
 	    status = ProcessStatus.DONE;
-	    address = decodeAddress();
-	    return status;
+		try {
+			address = InetAddress.getByAddress(decodeAddress());
+		} catch (UnknownHostException e) {
+			status = ProcessStatus.ERROR;
+			return status;
+		}
+		return status;
 	}
 	
 	private void fillBuffer(ByteBuffer buffer, ByteBuffer toFill) {
@@ -56,21 +63,17 @@ public class IpAddressReader implements Reader<String> {
 		}
 	}
 
-	private String decodeAddress() {
+	private byte[] decodeAddress() {
 		address_buffer.flip();
-		var number = address_buffer.remaining();
-		var sb = new StringBuilder();
-		for (var i = 0; i<number; i++) {
-			sb.append(address_buffer.get());
-			if (i!=number-1) {
-				sb.append(".");
-			}
+		byte[] adr = new byte[address_buffer.remaining()];
+		for (var i = 0; i<address_buffer.remaining(); i++) {
+			adr[i] = address_buffer.get();
 		}
-		return sb.toString();
+		return adr;
 	}
 
 	@Override
-	public String get() {
+	public InetAddress get() {
 		if (status != ProcessStatus.DONE) {
 			throw new IllegalStateException("Not right process status.");
 		}
