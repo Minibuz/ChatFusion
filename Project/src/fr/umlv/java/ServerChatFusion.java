@@ -1,3 +1,10 @@
+package fr.umlv.java;
+
+import fr.umlv.java.models.Message;
+import fr.umlv.java.readers.ListStringReader;
+import fr.umlv.java.readers.Reader;
+import fr.umlv.java.utils.Helpers;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -355,7 +362,7 @@ public class ServerChatFusion {
 	}
 
 	private static void usage() {
-		System.out.println("Usage : ServerChatFusion name port");
+		System.out.println("Usage : fr.umlv.java.ServerChatFusion name port");
 	}
 }
 

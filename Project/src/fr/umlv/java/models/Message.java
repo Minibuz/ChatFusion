@@ -2,16 +2,16 @@ package fr.umlv.java.models;
 
 public class Message {
     private String login;
-    private String texte;
+    private String text;
 
     public Message() {
         login = null;
-        texte = null;
+        text = null;
     }
 
-    public Message(String login, String texte) {
+    public Message(String login, String text) {
         this.login = login;
-        this.texte = texte;
+        this.text = text;
     }
 
     public String getLogin() {
@@ -20,10 +20,10 @@ public class Message {
     public void setLogin(String login) {
         this.login = login;
     }
-    public String getTexte() {
-        return texte;
+    public String getText() {
+        return text;
     }
-    public void setTexte(String texte) {
-        this.texte = texte;
+    public void setText(String texte) {
+        this.text = texte;
     }
 }
