@@ -2,7 +2,7 @@ package fr.umlv.java;
 
 import fr.umlv.java.models.context.ContextClient;
 import fr.umlv.java.models.Commands;
-import fr.umlv.java.models.Message;
+import fr.umlv.java.models.message.Message;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

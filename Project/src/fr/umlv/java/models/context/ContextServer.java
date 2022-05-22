@@ -1,8 +1,7 @@
 package fr.umlv.java.models.context;
 
-import fr.umlv.java.Client;
 import fr.umlv.java.ServerChatFusion;
-import fr.umlv.java.models.Message;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 
@@ -13,7 +12,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.logging.Logger;
 
 public class ContextServer {
@@ -55,7 +53,8 @@ public class ContextServer {
             currentOpCode = bufferIn.get();
             bufferIn.compact();
             reader = Reader.findReader(currentOpCode);
-            if (currentOpCode == -1) {
+            if (reader == null) {
+                currentOpCode = -1;
                 return;
             }
         }
@@ -68,10 +67,9 @@ public class ContextServer {
             return;
         }
         if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
-            User user = null;
             switch(currentOpCode) {
                 case 0:
-                    user = (User)reader.get();
+                    var user = (User)reader.get();
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), null);
                         this.name = user.login();
@@ -90,10 +88,9 @@ public class ContextServer {
                     }
                     bufferOut.put((byte) 3);
                     break;
-                //case 4: strings = (List<String>) reader.get(); server.broadcast(new Message(strings.get(1), strings.get(2))); break;
+                case 4: var msg = (Message) reader.get(); server.broadcast(msg); break;
                 case 5: break;
             }
-            System.out.println(user);
         }
         currentOpCode = -1;
     }

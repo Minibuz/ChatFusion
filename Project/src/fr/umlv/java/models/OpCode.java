@@ -22,21 +22,21 @@ public enum OpCode {
 
     public static OpCode getOpCode(int opCodeValue) {
         return switch (opCodeValue) {
-            case 0 -> LOGIN_ANONYMOUS; // Done
-            case 1 -> LOGIN_PASSWORD; // Done
-            case 2 -> LOGIN_ACCEPTED; // Done
+            case 0 -> LOGIN_ANONYMOUS; // Done : LoginAnonymousReader
+            case 1 -> LOGIN_PASSWORD; // Done : LoginPasswordReader
+            case 2 -> LOGIN_ACCEPTED; // Done : LoginAcceptedReader
             case 3 -> LOGIN_REFUSED; // No reader
-            case 4 -> MESSAGE; // No
-            case 5 -> MESSAGE_PRIVATE; // No
-            case 6 -> FILE_PRIVATE; // No
-            case 8 -> FUSION_INIT; // Done
-            case 9 -> FUSION_INIT_OK;
-            case 10 -> FUSION_INIT_KO;
-            case 11 -> FUSION_INIT_FWD;
-            case 12 -> FUSION_REQUEST; // Léo
-            case 13 -> FUSION_REQUEST_RESP; // Léo
-            case 14 -> FUSION_CHANGE_LEADER;
-            case 15 -> FUSION_MERGE;
+            case 4 -> MESSAGE; // Done : MessageReader
+            case 5 -> MESSAGE_PRIVATE; // Done : PrivateMessageReader
+            case 6 -> FILE_PRIVATE; // TODO
+            case 8 -> FUSION_INIT; // Done : FusionInitReader
+            case 9 -> FUSION_INIT_OK; // Done : FusionInitReader
+            case 10 -> FUSION_INIT_KO; // No reader
+            case 11 -> FUSION_INIT_FWD; // Done : SocketReader
+            case 12 -> FUSION_REQUEST; // Done : SocketReader
+            case 13 -> FUSION_REQUEST_RESP; // TODO : Léo
+            case 14 -> FUSION_CHANGE_LEADER; // Done : SocketReader
+            case 15 -> FUSION_MERGE; // Done : StringReader
             default -> throw new IllegalArgumentException("Unexpected value: " + opCodeValue);
         };
     }

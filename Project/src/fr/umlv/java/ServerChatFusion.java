@@ -1,19 +1,13 @@
 package fr.umlv.java;
 
-import fr.umlv.java.models.Message;
-import fr.umlv.java.models.context.ContextClient;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.context.ContextServer;
-import fr.umlv.java.readers.ListStringReader;
-import fr.umlv.java.readers.Reader;
 import fr.umlv.java.utils.Helpers;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
@@ -181,19 +175,3 @@ public class ServerChatFusion {
 		System.out.println("Usage : fr.umlv.java.ServerChatFusion name port");
 	}
 }
-
-/** Récapitulatif des types donnés pour les différentes requêtes
- *
- *  string
-*	string string
-*	string
-*	string string string
-*	string string string string
-*
-*	string * 5 int int bytes
-*	string adresse int string ...
-*	adresse
-*	byte
- *
-*	StringReader(int nbStrings) --> pour lire nbStrings String
-**/
