@@ -2,6 +2,7 @@ package fr.umlv.java.readers;
 
 import fr.umlv.java.models.OpCode;
 import fr.umlv.java.readers.fusion.FusionInitReader;
+import fr.umlv.java.readers.fusion.StatusReader;
 import fr.umlv.java.readers.login.LoginAcceptedReader;
 import fr.umlv.java.readers.login.LoginAnonymousReader;
 import fr.umlv.java.readers.message.MessageReader;
@@ -30,7 +31,7 @@ public interface Reader<T> {
             case FILE_PRIVATE -> null; // TODO
             case FUSION_INIT, FUSION_INIT_OK -> new FusionInitReader();
             case FUSION_INIT_FWD, FUSION_REQUEST, FUSION_CHANGE_LEADER -> new SocketReader();
-            case FUSION_REQUEST_RESP -> null; // TODO
+            case FUSION_REQUEST_RESP -> new StatusReader();
             case FUSION_MERGE -> new StringReader();
         };
     }
