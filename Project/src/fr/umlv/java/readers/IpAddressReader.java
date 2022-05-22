@@ -18,14 +18,15 @@ public class IpAddressReader implements Reader<InetAddress> {
         if (status == ProcessStatus.DONE || status == ProcessStatus.ERROR) {
             throw new IllegalStateException();
         }
-        fillBuffer(bb, size_buffer);
-	    if (size_buffer.hasRemaining()) {
-		    status = ProcessStatus.REFILL;
-			return status;
-	    }
 	    if (address_buffer == null) {
+			fillBuffer(bb, size_buffer);
+			if (size_buffer.hasRemaining()) {
+				status = ProcessStatus.REFILL;
+				return status;
+			}
 	    	size_buffer.flip();
 	    	var type = size_buffer.get();
+			System.out.println(type);
 	    	if (type != 4 && type != 6) {
 	    		status = ProcessStatus.ERROR;
 	    		return status;

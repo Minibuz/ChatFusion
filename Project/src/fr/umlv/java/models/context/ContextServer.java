@@ -1,6 +1,7 @@
 package fr.umlv.java.models.context;
 
 import fr.umlv.java.ServerChatFusion;
+import fr.umlv.java.models.fusion.InitFusion;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
@@ -12,6 +13,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 public class ContextServer {
@@ -58,6 +60,9 @@ public class ContextServer {
                 currentOpCode = -1;
                 return;
             }
+            if (currentOpCode == 8) {
+                isServer = true;
+            }
         }
         var status = reader.process(bufferIn);
         if (status == Reader.ProcessStatus.ERROR) {
@@ -67,7 +72,7 @@ public class ContextServer {
         if (status == Reader.ProcessStatus.REFILL) {
             return;
         }
-        if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
+        if (isServer || (name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
             switch(currentOpCode) {
                 case 0:
                     var user = (User)reader.get();
@@ -91,6 +96,7 @@ public class ContextServer {
                     break;
                 case 4: var msg = (Message) reader.get(); server.broadcast(msg); break;
                 case 5: break;
+                case 8: var initFusion = (InitFusion) reader.get(); break;
             }
         }
         currentOpCode = -1;
@@ -213,6 +219,29 @@ public class ContextServer {
     public void doConnect() throws IOException {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
-        key.interestOps(SelectionKey.OP_READ);
+        fillInitFusion();
+        key.interestOps(SelectionKey.OP_WRITE);
+    }
+
+    public void fillInitFusion() {
+        bufferOut.put((byte) 8);
+        var server_buffer = UTF8.encode(server.getServerName());
+        bufferOut.putInt(server_buffer.remaining());
+        bufferOut.put(server_buffer);
+        var socket = server.getServerSocketChannel().socket();
+        var address = socket.getInetAddress().getAddress();
+        var type = address.length == 4 ? 4 : 6;
+        bufferOut.put((byte) type);
+        for (var o : address) {
+            bufferOut.put(o);
+        }
+        bufferOut.putInt(socket.getLocalPort());
+        var members = server.getMembers();
+        bufferOut.putInt(members.size());
+        for (var member : members) {
+            var member_buffer = UTF8.encode(member);
+            bufferOut.putInt(member_buffer.remaining());
+            bufferOut.put(member_buffer);
+        }
     }
 }
