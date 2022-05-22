@@ -27,7 +27,7 @@ public class ContextClient {
     private ConnectionStatut connected = ConnectionStatut.NOT_CONNECTED;
     private boolean closed = false;
     private boolean logged = false;
-    private Reader reader;
+    private Reader<?> reader;
     private final String login;
     private byte currentOpCode = -1;
     private String serverName;

@@ -1,5 +1,7 @@
 package fr.umlv.java;
 
+import fr.umlv.java.models.Commands;
+import fr.umlv.java.models.context.ContextClient;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.context.ContextServer;
 import fr.umlv.java.utils.Helpers;
@@ -22,6 +24,8 @@ public class ServerChatFusion {
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
 	private final Map<String, String> clients = new HashMap<>();
+	private SocketChannel fusionSc = SocketChannel.open();
+	private boolean isLeader = true;
 
 	public ServerChatFusion(String name, int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
@@ -92,8 +96,14 @@ public class ServerChatFusion {
     private void processCommands() throws IOException {
         var command = queue.poll();
         if (command != null) {
-        	switch(command) {
-        		// PUT commands here
+			var strings = command.split(" ");
+        	switch(strings[0]) {
+        		case "FUSION" -> {
+					fusionSc.configureBlocking(false);
+					var sk = fusionSc.register(selector, SelectionKey.OP_CONNECT);
+					sk.attach(new ContextServer(this, sk));
+					fusionSc.connect(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
+				}
         	}
         }
     }
@@ -109,6 +119,9 @@ public class ServerChatFusion {
 			throw new UncheckedIOException(ioe);
 		}
 		try {
+			if (key.isValid() && key.isConnectable()) {
+				((ContextServer) key.attachment()).doConnect();
+			}
 			if (key.isValid() && key.isWritable()) {
 				((ContextServer) key.attachment()).doWrite();
 			}
