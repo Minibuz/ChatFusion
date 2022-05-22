@@ -175,19 +175,3 @@ public class ServerChatFusion {
 		System.out.println("Usage : fr.umlv.java.ServerChatFusion name port");
 	}
 }
-
-/** Récapitulatif des types donnés pour les différentes requêtes
- *
- *  string
-*	string string
-*	string
-*	string string string
-*	string string string string
-*
-*	string * 5 int int bytes
-*	string adresse int string ...
-*	adresse
-*	byte
- *
-*	StringReader(int nbStrings) --> pour lire nbStrings String
-**/

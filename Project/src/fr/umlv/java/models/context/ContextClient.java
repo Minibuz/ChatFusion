@@ -51,8 +51,9 @@ public class ContextClient {
             bufferIn.flip();
             currentOpCode = bufferIn.get();
             bufferIn.compact();
-            createReader();
-            if (currentOpCode == -1) {
+            reader = Reader.findReader(currentOpCode);
+            if (reader == null) {
+                currentOpCode = -1;
                 return;
             }
         }
@@ -64,10 +65,17 @@ public class ContextClient {
         if (status == Reader.ProcessStatus.REFILL) {
             return;
         }
-        switch(currentOpCode) {
-            case 2 : var strings = (List<String>) reader.get(); serverName = strings.get(0); connected = ConnectionStatut.CONNECTED; processOut(); break;
-            case 3 : connected = ConnectionStatut.NOT_CONNECTED; break;
-            case 4 : strings = (List<String>) reader.get(); System.out.println(strings.get(1) + " : " + strings.get(2)); break;
+        switch (currentOpCode) {
+            case 2 -> {
+                serverName = (String) reader.get();
+                connected = ConnectionStatut.CONNECTED;
+                processOut();
+            }
+            case 3 -> connected = ConnectionStatut.NOT_CONNECTED;
+            case 4 -> {
+                var msg = (Message) reader.get();
+                System.out.println(msg.getLogin() + " : " + msg.getText());
+            }
         }
         currentOpCode = -1;
     }
@@ -176,13 +184,5 @@ public class ContextClient {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         key.interestOps(SelectionKey.OP_WRITE);
-    }
-
-    private void createReader() {
-        switch (currentOpCode) {
-            case 2 -> reader = new LoginAcceptedReader();
-            case 4 -> reader = new MessageReader();
-            default -> currentOpCode = -1;
-        }
     }
 }
