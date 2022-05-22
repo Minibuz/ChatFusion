@@ -49,6 +49,10 @@ public class ServerChatFusion {
 
 	public List<String> getMembers() { return members; }
 
+	public boolean isLeader() { return isLeader; }
+
+	public SocketChannel getFusionSc() { return fusionSc; }
+
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);
 		serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);

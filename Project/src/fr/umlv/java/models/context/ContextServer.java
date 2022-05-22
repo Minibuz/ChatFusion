@@ -60,7 +60,7 @@ public class ContextServer {
                 currentOpCode = -1;
                 return;
             }
-            if (currentOpCode == 8) {
+            if (name == null && currentOpCode == 8) {
                 isServer = true;
             }
         }
@@ -72,7 +72,28 @@ public class ContextServer {
         if (status == Reader.ProcessStatus.REFILL) {
             return;
         }
-        if (isServer || (name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
+        if (isServer) {
+            switch (currentOpCode) {
+                case 8 -> {
+                    var initFusion = (InitFusion) reader.get();
+                    if (server.isLeader()) {
+                        if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
+                            // Send OpCode 9
+                            bufferOut.put((byte) 9);
+                            fillInitFusion();
+                        } else {
+                            bufferOut.put((byte) 10);
+                        }
+                    } else {
+                        fillInitFusionFwd(); // Sending OpCode 11
+                    }
+                }
+                case 9 -> System.out.println("test");
+            }
+            currentOpCode = -1;
+            return;
+        }
+        if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
             switch(currentOpCode) {
                 case 0:
                     var user = (User)reader.get();
@@ -96,7 +117,6 @@ public class ContextServer {
                     break;
                 case 4: var msg = (Message) reader.get(); server.broadcast(msg); break;
                 case 5: break;
-                case 8: var initFusion = (InitFusion) reader.get(); break;
             }
         }
         currentOpCode = -1;
@@ -219,12 +239,16 @@ public class ContextServer {
     public void doConnect() throws IOException {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
+        isServer = true;
+        bufferOut.put((byte) 8);
         fillInitFusion();
         key.interestOps(SelectionKey.OP_WRITE);
     }
 
+    /**
+     * Filling InitFusion request without the OpCode
+     */
     public void fillInitFusion() {
-        bufferOut.put((byte) 8);
         var server_buffer = UTF8.encode(server.getServerName());
         bufferOut.putInt(server_buffer.remaining());
         bufferOut.put(server_buffer);
@@ -243,5 +267,17 @@ public class ContextServer {
             bufferOut.putInt(member_buffer.remaining());
             bufferOut.put(member_buffer);
         }
+    }
+
+    public void fillInitFusionFwd() {
+        bufferOut.put((byte) 11);
+        var socket = server.getFusionSc().socket();
+        var address = socket.getInetAddress().getAddress();
+        var type = address.length == 4 ? 4 : 6;
+        bufferOut.put((byte) type);
+        for (var o : address) {
+            bufferOut.put(o);
+        }
+        bufferOut.putInt(socket.getLocalPort());
     }
 }

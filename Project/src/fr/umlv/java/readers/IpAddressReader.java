@@ -26,7 +26,6 @@ public class IpAddressReader implements Reader<InetAddress> {
 			}
 	    	size_buffer.flip();
 	    	var type = size_buffer.get();
-			System.out.println(type);
 	    	if (type != 4 && type != 6) {
 	    		status = ProcessStatus.ERROR;
 	    		return status;
