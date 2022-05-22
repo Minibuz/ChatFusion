@@ -26,6 +26,7 @@ public class ServerChatFusion {
 	private final Map<String, String> clients = new HashMap<>();
 	private SocketChannel fusionSc = SocketChannel.open();
 	private boolean isLeader = true;
+	private final List<String> members = new ArrayList<>();
 
 	public ServerChatFusion(String name, int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
@@ -43,6 +44,10 @@ public class ServerChatFusion {
 	public Map<String, String> getClients() {
 		return clients;
 	}
+
+	public ServerSocketChannel getServerSocketChannel() { return serverSocketChannel; }
+
+	public List<String> getMembers() { return members; }
 
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);

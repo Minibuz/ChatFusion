@@ -1,5 +1,6 @@
 package fr.umlv.java.readers;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -7,8 +8,8 @@ import java.util.List;
 
 public class SocketReader implements Reader<InetSocketAddress> {
 	private ProcessStatus status = ProcessStatus.REFILL;
-	private InetSocketAddress socket;
-	private final IpAddressReader reader = new IpAddressReader();
+	private InetAddress address;
+	private final IpAddressReader ipReader = new IpAddressReader();
 	private final IntReader intReader = new IntReader();
 	
 	@Override
@@ -16,16 +17,19 @@ public class SocketReader implements Reader<InetSocketAddress> {
         if (status == ProcessStatus.DONE || status == ProcessStatus.ERROR) {
             throw new IllegalStateException();
         }
-		var readerStatus = reader.process(bb);
-		if (readerStatus == ProcessStatus.ERROR) {
-			status = ProcessStatus.ERROR;
-			return status;
+		if (address == null) {
+			var ipReaderStatus = ipReader.process(bb);
+			if (ipReaderStatus == ProcessStatus.ERROR) {
+				status = ProcessStatus.ERROR;
+				return status;
+			}
+			if (ipReaderStatus == ProcessStatus.REFILL) {
+				status = ProcessStatus.REFILL;
+				return status;
+			}
+			address = ipReader.get();
 		}
-		if (readerStatus == ProcessStatus.REFILL) {
-			status = ProcessStatus.REFILL;
-			return status;
-		}
-		var intReaderStatus = reader.process(bb);
+		var intReaderStatus = intReader.process(bb);
 		if (intReaderStatus == ProcessStatus.ERROR) {
 			status = ProcessStatus.ERROR;
 			return status;
@@ -34,7 +38,6 @@ public class SocketReader implements Reader<InetSocketAddress> {
 			status = ProcessStatus.REFILL;
 			return status;
 		}
-		socket = new InetSocketAddress(reader.get(), intReader.get());
 		status = ProcessStatus.DONE;
 		return status;
 	}
@@ -44,12 +47,13 @@ public class SocketReader implements Reader<InetSocketAddress> {
 		if (status != ProcessStatus.DONE) {
 			throw new IllegalStateException("Not right process status.");
 		}
-		return socket;
+		return new InetSocketAddress(address, intReader.get());
 	}
 
 	@Override
 	public void reset() {
-		reader.reset();
+		address = null;
+		ipReader.reset();
 		intReader.reset();
 		status = ProcessStatus.REFILL;
 	}
