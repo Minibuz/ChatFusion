@@ -1,25 +1,24 @@
-package fr.umlv.java.readers;
+package fr.umlv.java.readers.message;
+
+import fr.umlv.java.models.message.Message;
+import fr.umlv.java.readers.Reader;
+import fr.umlv.java.readers.StringReader;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListStringReader implements Reader<List<String>> {
+public class MessageReader implements Reader<Message> {
 	private ProcessStatus status = ProcessStatus.REFILL;
-	private final int nbStrings;
-	private final List<String> list = new ArrayList<>();
 	private final StringReader reader = new StringReader();
-
-	public ListStringReader(int nbStrings) {
-		this.nbStrings = nbStrings;
-	}
+	private final List<String> list = new ArrayList<>();
 	
 	@Override
 	public ProcessStatus process(ByteBuffer bb) {
         if (status == ProcessStatus.DONE || status == ProcessStatus.ERROR) {
             throw new IllegalStateException();
         }
-		while (list.size() != nbStrings) {
+		while (list.size() != 3) {
 			var readerStatus = reader.process(bb);
 			if (readerStatus == ProcessStatus.ERROR) {
 				status = ProcessStatus.ERROR;
@@ -37,11 +36,11 @@ public class ListStringReader implements Reader<List<String>> {
 	}
 
 	@Override
-	public List<String> get() {
+	public Message get() {
 		if (status != ProcessStatus.DONE) {
 			throw new IllegalStateException("Not right process status.");
 		}
-		return list;
+		return new Message(list.get(0), list.get(1), list.get(2));
 	}
 
 	@Override

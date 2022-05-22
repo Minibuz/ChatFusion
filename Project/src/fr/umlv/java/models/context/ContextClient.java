@@ -1,9 +1,10 @@
 package fr.umlv.java.models.context;
 
 import fr.umlv.java.models.ConnectionStatut;
-import fr.umlv.java.models.Message;
-import fr.umlv.java.readers.ListStringReader;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.readers.Reader;
+import fr.umlv.java.readers.login.LoginAcceptedReader;
+import fr.umlv.java.readers.message.MessageReader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -179,8 +180,8 @@ public class ContextClient {
 
     private void createReader() {
         switch (currentOpCode) {
-            case 2 -> reader = new ListStringReader(1);
-            case 4 -> reader = new ListStringReader(3);
+            case 2 -> reader = new LoginAcceptedReader();
+            case 4 -> reader = new MessageReader();
             default -> currentOpCode = -1;
         }
     }

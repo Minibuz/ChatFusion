@@ -1,8 +1,7 @@
 package fr.umlv.java.models.context;
 
-import fr.umlv.java.Client;
 import fr.umlv.java.ServerChatFusion;
-import fr.umlv.java.models.Message;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 
@@ -13,7 +12,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.logging.Logger;
 
 public class ContextServer {

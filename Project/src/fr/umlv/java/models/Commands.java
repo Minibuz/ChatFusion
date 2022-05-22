@@ -1,6 +1,7 @@
 package fr.umlv.java.models;
 
 import fr.umlv.java.models.context.ContextClient;
+import fr.umlv.java.models.message.Message;
 
 import java.util.ArrayDeque;
 
