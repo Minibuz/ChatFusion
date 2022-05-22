@@ -26,8 +26,9 @@ public class ContextServer {
     private final ServerChatFusion server;
     private boolean closed = false;
     private String name = null;
-    private Reader reader;
+    private Reader<?> reader;
     private byte currentOpCode = -1;
+    private boolean isServer;
 
     public ContextServer(ServerChatFusion server, SelectionKey key) {
         this.key = key;
@@ -207,5 +208,11 @@ public class ContextServer {
         var serverBuffer = UTF8.encode(server.getServerName());
         bufferOut.putInt(serverBuffer.remaining());
         bufferOut.put(serverBuffer);
+    }
+
+    public void doConnect() throws IOException {
+        if (!sc.finishConnect())
+            return; // the selector gave a bad hint
+        key.interestOps(SelectionKey.OP_READ);
     }
 }
