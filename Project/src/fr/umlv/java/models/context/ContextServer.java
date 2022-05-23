@@ -50,7 +50,7 @@ public class ContextServer {
      *
      */
     private void processIn() {
-        //TODO
+        // OpCode not yet read
         if (currentOpCode == -1) {
             bufferIn.flip();
             currentOpCode = bufferIn.get();
@@ -64,18 +64,66 @@ public class ContextServer {
                 isServer = true;
             }
         }
-        var status = reader.process(bufferIn);
-        if (status == Reader.ProcessStatus.ERROR) {
-            currentOpCode = -1;
+
+        // Process the byteBuffer in entry
+        if (processEntry()) return;
+
+        // If a server is messaging us
+        if(isServer) {
+            processServer();
             return;
         }
-        if (status == Reader.ProcessStatus.REFILL) {
-            return;
+
+        // First connexion
+        if(name == null) {
+            switch(currentOpCode) {
+                case 0:
+                    var user = (User)reader.get();
+                    if (!server.getClients().containsKey(user.login())) {
+                        server.getClients().put(user.login(), null);
+                        this.name = user.login();
+                        fillValidConnexion();
+                        break;
+                    }
+                    bufferOut.put((byte) 3);
+                    break;
+                case 1: // This shouldn't happen
+                    user = (User)reader.get();
+                    if (!server.getClients().containsKey(user.login())) {
+                        server.getClients().put(user.login(), user.password());
+                        this.name = user.login();
+                        fillValidConnexion();
+                        break;
+                    }
+                    bufferOut.put((byte) 3);
+                    break;
+                default:
+                    // Error
+                    break;
+            }
         }
-        if (isServer) {
+        // Already connected
+        else {
+            switch(currentOpCode) {
+                case 4:
+                    var msg = (Message) reader.get();
+                    server.broadcast(msg, null);
+                    break;
+                case 5:
+                    break;
+                default:
+                    // Error
+                    break;
+            }
+        }
+        currentOpCode = -1;
+    }
+
+    private void processServer() {
             switch (currentOpCode) {
                 case 4 -> {
-                    var msg = (Message) reader.get(); server.broadcast(msg, key);
+                    var msg = (Message) reader.get();
+                    server.broadcast(msg, key);
                     System.out.println("test");
                 }
                 case 8 -> {
@@ -101,35 +149,18 @@ public class ContextServer {
                 }
             }
             currentOpCode = -1;
-            return;
+    }
+
+    private boolean processEntry() {
+        var status = reader.process(bufferIn);
+        if (status == Reader.ProcessStatus.ERROR) {
+            currentOpCode = -1;
+            return true;
         }
-        if ((name != null && (currentOpCode != 0 || currentOpCode != 1)) || (name == null && (currentOpCode == 0 || currentOpCode == 1))) { // On s'assure que l'utilisateur utilise la bonne commande
-            switch(currentOpCode) {
-                case 0:
-                    var user = (User)reader.get();
-                    if (!server.getClients().containsKey(user.login())) {
-                        server.getClients().put(user.login(), null);
-                        this.name = user.login();
-                        fillValidConnexion();
-                        break;
-                    }
-                    bufferOut.put((byte) 3);
-                    break;
-                case 1:
-                    user = (User)reader.get();
-                    if (!server.getClients().containsKey(user.login())) {
-                        server.getClients().put(user.login(), user.password());
-                        this.name = user.login();
-                        fillValidConnexion();
-                        break;
-                    }
-                    bufferOut.put((byte) 3);
-                    break;
-                case 4: var msg = (Message) reader.get(); server.broadcast(msg, null); break;
-                case 5: break;
-            }
+        if (status == Reader.ProcessStatus.REFILL) {
+            return true;
         }
-        currentOpCode = -1;
+        return false;
     }
 
     /**
