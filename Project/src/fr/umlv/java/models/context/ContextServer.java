@@ -74,6 +74,10 @@ public class ContextServer {
         }
         if (isServer) {
             switch (currentOpCode) {
+                case 4 -> {
+                    var msg = (Message) reader.get(); server.broadcast(msg, key);
+                    System.out.println("test");
+                }
                 case 8 -> {
                     var initFusion = (InitFusion) reader.get();
                     if (server.isLeader()) {
@@ -81,6 +85,7 @@ public class ContextServer {
                             // Send OpCode 9
                             bufferOut.put((byte) 9);
                             fillInitFusion();
+                            // TODO : Sending OpCode 14 if changing leader
                         } else {
                             bufferOut.put((byte) 10);
                         }
@@ -88,7 +93,12 @@ public class ContextServer {
                         fillInitFusionFwd(); // Sending OpCode 11
                     }
                 }
-                case 9 -> System.out.println("test");
+                case 9 -> {
+                    var initFusion = (InitFusion) reader.get();
+                    // TODO : Sending OpCode 14 if changing leader
+                    server.unsetLeader(); // Tmp : not correct
+                    System.out.println("Fusion done");
+                }
             }
             currentOpCode = -1;
             return;
@@ -115,7 +125,7 @@ public class ContextServer {
                     }
                     bufferOut.put((byte) 3);
                     break;
-                case 4: var msg = (Message) reader.get(); server.broadcast(msg); break;
+                case 4: var msg = (Message) reader.get(); server.broadcast(msg, null); break;
                 case 5: break;
             }
         }
@@ -128,7 +138,7 @@ public class ContextServer {
      * @param msg
      */
     public void queueMessage(Message msg) {
-        if (name == null) { // Not connected : can't see messages
+        if (name == null && !isServer) { // Not connected : can't see messages
             return;
         }
         queue.add(msg);

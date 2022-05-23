@@ -51,6 +51,8 @@ public class ServerChatFusion {
 
 	public boolean isLeader() { return isLeader; }
 
+	public void unsetLeader() { isLeader = false; }
+
 	public SocketChannel getFusionSc() { return fusionSc; }
 
 	public void launch() throws IOException {
@@ -170,9 +172,9 @@ public class ServerChatFusion {
 	 *
 	 * @param msg
 	 */
-	public void broadcast(Message msg) {
+	public void broadcast(Message msg, SelectionKey toNotSend) {
 		for (var key : selector.keys()) {
-			if (key.attachment() != null) {
+			if (key.attachment() != null && !key.equals(toNotSend)) {
 				((ContextServer) key.attachment()).queueMessage(msg);
 			}
 		}
