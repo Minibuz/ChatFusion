@@ -34,7 +34,7 @@ public enum OpCode {
             case 10 -> FUSION_INIT_KO; // No reader
             case 11 -> FUSION_INIT_FWD; // Done : SocketReader
             case 12 -> FUSION_REQUEST; // Done : SocketReader
-            case 13 -> FUSION_REQUEST_RESP; // TODO : Léo
+            case 13 -> FUSION_REQUEST_RESP; // Done : StatusReader
             case 14 -> FUSION_CHANGE_LEADER; // Done : SocketReader
             case 15 -> FUSION_MERGE; // Done : StringReader
             default -> throw new IllegalArgumentException("Unexpected value: " + opCodeValue);

@@ -8,6 +8,7 @@ import fr.umlv.java.utils.Helpers;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
@@ -24,13 +25,16 @@ public class ServerChatFusion {
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
 	private final Map<String, String> clients = new HashMap<>();
-	private SocketChannel fusionSc = SocketChannel.open();
+	private final SocketChannel fusionSc = SocketChannel.open();
 	private boolean isLeader = true;
+
+	private boolean fusionInDoing = false;
 	private final List<String> members = new ArrayList<>();
 
 	public ServerChatFusion(String name, int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
-		serverSocketChannel.bind(new InetSocketAddress(port));
+		var address = new InetSocketAddress(port);
+		serverSocketChannel.bind(address);
 		serverName = name;
 		selector = Selector.open();
 		this.queue = new ArrayBlockingQueue<String>(10);
@@ -51,9 +55,16 @@ public class ServerChatFusion {
 
 	public boolean isLeader() { return isLeader; }
 
-	public void unsetLeader() { isLeader = false; }
+	public void unsetLeader() {
+		isLeader = false;
+		// Close all connections used as leader
+	}
 
 	public SocketChannel getFusionSc() { return fusionSc; }
+
+	public boolean isFusionInDoing() {
+		return fusionInDoing;
+	}
 
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);
@@ -111,13 +122,18 @@ public class ServerChatFusion {
         	switch(strings[0]) {
         		case "FUSION" -> {
 					fusionSc.configureBlocking(false);
-					var sk = fusionSc.register(selector, SelectionKey.OP_CONNECT);
-					sk.attach(new ContextServer(this, sk));
-					fusionSc.connect(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
+					swapFusion(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
 				}
         	}
         }
     }
+
+	public void swapFusion(InetSocketAddress address) throws IOException {
+		var sk = fusionSc.register(selector, SelectionKey.OP_CONNECT);
+		sk.attach(new ContextServer(this, sk));
+		// Try to check if already connected to something
+		fusionSc.connect(address);
+	}
 
 	private void treatKey(SelectionKey key) {
 		Helpers.printSelectedKey(key); // for debug
@@ -172,10 +188,22 @@ public class ServerChatFusion {
 	 *
 	 * @param msg
 	 */
-	public void broadcast(Message msg, SelectionKey toNotSend) {
+	public void broadcast(Message msg, boolean fromLeaderServer, String server) {
 		for (var key : selector.keys()) {
-			if (key.attachment() != null && !key.equals(toNotSend)) {
-				((ContextServer) key.attachment()).queueMessage(msg);
+			var context = (ContextServer) key.attachment();
+			if (key.attachment() != null) {
+				if(!context.isServer()) {
+					context.queueMessage(msg);
+					continue;
+				}
+				if(isLeader && !server.equals(context.getName())) {
+					logger.info("YES");
+					context.queueMessage(msg);
+					continue;
+				}
+				if(!isLeader && !fromLeaderServer && context.isMegaServerLeader()) {
+					context.queueMessage(msg);
+				}
 			}
 		}
 	}
