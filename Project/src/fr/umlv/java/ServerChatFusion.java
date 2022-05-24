@@ -25,7 +25,7 @@ public class ServerChatFusion {
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
 	private final Map<String, String> clients = new HashMap<>();
-	private final SocketChannel fusionSc = SocketChannel.open();
+	private SocketChannel fusionSc = SocketChannel.open();
 	private boolean isLeader = true;
 
 	private boolean fusionInDoing = false;
@@ -121,7 +121,6 @@ public class ServerChatFusion {
 			var strings = command.split(" ");
         	switch(strings[0]) {
         		case "FUSION" -> {
-					fusionSc.configureBlocking(false);
 					swapFusion(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
 				}
         	}
@@ -129,9 +128,10 @@ public class ServerChatFusion {
     }
 
 	public void swapFusion(InetSocketAddress address) throws IOException {
+		fusionSc = SocketChannel.open();
+		fusionSc.configureBlocking(false);
 		var sk = fusionSc.register(selector, SelectionKey.OP_CONNECT);
 		sk.attach(new ContextServer(this, sk));
-		// Try to check if already connected to something
 		fusionSc.connect(address);
 	}
 
@@ -197,12 +197,22 @@ public class ServerChatFusion {
 					continue;
 				}
 				if(isLeader && !server.equals(context.getName())) {
-					logger.info("YES");
 					context.queueMessage(msg);
 					continue;
 				}
-				if(!isLeader && !fromLeaderServer && context.isMegaServerLeader()) {
+				if(!isLeader && !fromLeaderServer) {
 					context.queueMessage(msg);
+				}
+			}
+		}
+	}
+
+	public void broadcastLeader(InetSocketAddress newLeader, String server) {
+		for (var key : selector.keys()) {
+			var context = (ContextServer) key.attachment();
+			if (key.attachment() != null) {
+				if(context.isServer() && !server.equals(context.getName())) {
+					((ContextServer) key.attachment()).sendChangingLeader(newLeader);
 				}
 			}
 		}

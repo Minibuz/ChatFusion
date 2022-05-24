@@ -142,11 +142,7 @@ public class ContextServer {
                             logger.info("OpCode 9");
                             bufferOut.put((byte) 9);
                             fillInitFusion();
-                            // TODO : Sending OpCode 14 if changing leader
-                            // Changing leader anyway, cause the one sending the request stay leader
-                            server.unsetLeader();
-                            isMegaServerLeader = true;
-                            this.name = initFusion.getServerName();
+                            changeLeader(initFusion);
                         } else {
                             // FUSION INIT KO
                             bufferOut.put((byte) 10);
@@ -157,7 +153,7 @@ public class ContextServer {
                 }
                 case 9 -> {
                     var initFusion = (InitFusion) reader.get();
-                    this.name = initFusion.getServerName();
+                    changeLeader(initFusion);
                     System.out.println("Fusion done");
                 }
                 case 12 -> {
@@ -184,6 +180,7 @@ public class ContextServer {
                         logger.info("SwapFusion broken");
                         return;
                     }
+                    silentlyClose();
                 }
             }
             currentOpCode = -1;
@@ -378,5 +375,26 @@ public class ContextServer {
             bufferOut.put(o);
         }
         bufferOut.putInt(socket.getLocalPort());
+    }
+
+    public void changeLeader(InitFusion initFusion) {
+        this.name = initFusion.getServerName();
+        if (server.getServerName().compareTo(initFusion.getServerName()) > 0) { // Changing leader depending on the names
+            isMegaServerLeader = true;
+            server.unsetLeader();
+            server.broadcastLeader(initFusion.getSocketAddress(), name);
+        }
+    }
+
+    public void sendChangingLeader(InetSocketAddress newLeader) {
+        bufferOut.put((byte) 14);
+        var address = newLeader.getAddress().getAddress();
+        var type = address.length == 4 ? 4 : 6;
+        bufferOut.put((byte) type);
+        for (var o : address) {
+            bufferOut.put(o);
+        }
+        bufferOut.putInt(newLeader.getPort());
+        updateInterestOps();
     }
 }

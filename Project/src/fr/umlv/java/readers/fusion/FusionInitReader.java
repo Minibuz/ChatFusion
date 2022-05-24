@@ -6,6 +6,7 @@ import fr.umlv.java.readers.Reader;
 import fr.umlv.java.readers.SocketReader;
 import fr.umlv.java.readers.StringReader;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ public class FusionInitReader implements Reader<InitFusion> {
 	private ProcessStatus status = ProcessStatus.REFILL;
 	private int nbMembers = -1;
 	private String name;
-	private SocketAddress address;
+	private InetSocketAddress address;
 	private final List<String> members = new ArrayList<>();
 	private final StringReader nameReader = new StringReader();
 	private final SocketReader socketReader = new SocketReader();
