@@ -206,7 +206,7 @@ public class ServerChatFusion {
 					context.queueMessage(msg);
 					continue;
 				}
-				if(!isLeader && !fromLeaderServer) {
+				if(!isLeader && !fromLeaderServer && context.isMegaServerLeader()) {
 					context.queueMessage(msg);
 				}
 			}

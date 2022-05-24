@@ -68,7 +68,7 @@ public class ContextServer {
                 currentOpCode = -1;
                 return;
             }
-            if (name == null && currentOpCode == 8) {
+            if (name == null && (currentOpCode == 8 || currentOpCode == 9)) {
                 isServer = true;
             }
         }
@@ -160,6 +160,7 @@ public class ContextServer {
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
+                        System.out.println("test");
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
@@ -354,7 +355,6 @@ public class ContextServer {
         var type = address.length == 4 ? 4 : 6;
         bufferOut.put((byte) type);
         for (var o : address) {
-            System.out.println(o);
             bufferOut.put(o);
         }
         bufferOut.putInt(socket.getLocalPort());
@@ -393,6 +393,7 @@ public class ContextServer {
 
     public void changeLeader(InitFusion initFusion) {
         this.name = initFusion.getServerName();
+        isMegaServerLeader = false;
         if (server.getServerName().compareTo(initFusion.getServerName()) > 0) { // Changing leader depending on the names
             isMegaServerLeader = true;
             server.unsetLeader();
