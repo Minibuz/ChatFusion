@@ -61,6 +61,10 @@ public class ServerChatFusion {
 
 	public SocketChannel getFusionSc() { return fusionSc; }
 
+	public boolean isFusionInDoing() {
+		return fusionInDoing;
+	}
+
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);
 		serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -183,12 +187,22 @@ public class ServerChatFusion {
 	 *
 	 * @param msg
 	 */
-	public void broadcast(Message msg, SelectionKey toNotSend) {
+	public void broadcast(Message msg, boolean fromLeaderServer, String server) {
 		for (var key : selector.keys()) {
 			var context = (ContextServer) key.attachment();
 			if (key.attachment() != null) {
-				if(context.isServer() && !isLeader()) { return; }
-				((ContextServer) key.attachment()).queueMessage(msg);
+				if(!context.isServer()) {
+					context.queueMessage(msg);
+					continue;
+				}
+				if(isLeader && !server.equals(context.getName())) {
+					logger.info("YES");
+					context.queueMessage(msg);
+					continue;
+				}
+				if(!isLeader && !fromLeaderServer && context.isMegaServerLeader()) {
+					context.queueMessage(msg);
+				}
 			}
 		}
 	}

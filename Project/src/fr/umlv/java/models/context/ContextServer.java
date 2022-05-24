@@ -7,7 +7,6 @@ import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -16,6 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ContextServer {
@@ -33,7 +33,7 @@ public class ContextServer {
     private Reader<?> reader;
     private byte currentOpCode = -1;
     private boolean isServer;
-    private boolean fusionInDoing = false;
+    private boolean isMegaServerLeader;
 
     public ContextServer(ServerChatFusion server, SelectionKey key) {
         this.key = key;
@@ -46,6 +46,11 @@ public class ContextServer {
     }
 
     public boolean isServer() { return isServer; }
+
+    public boolean isMegaServerLeader() {
+        return isMegaServerLeader;
+    }
+
     /**
      * Process the content of bufferIn
      *
@@ -111,7 +116,7 @@ public class ContextServer {
             switch(currentOpCode) {
                 case 4:
                     var msg = (Message) reader.get();
-                    server.broadcast(msg, null);
+                    server.broadcast(msg, false, name);
                     break;
                 case 5:
                     break;
@@ -127,7 +132,7 @@ public class ContextServer {
             switch (currentOpCode) {
                 case 4 -> {
                     var msg = (Message) reader.get();
-                    server.broadcast(msg, key);
+                    server.broadcast(msg, true, name);
                     System.out.println("test");
                 }
                 case 8 -> {
@@ -135,8 +140,14 @@ public class ContextServer {
                     if (server.isLeader()) {
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
                             // Send OpCode 9
+                            logger.info("OpCode 9");
                             bufferOut.put((byte) 9);
                             fillInitFusion();
+                            // TODO : Sending OpCode 14 if changing leader
+                            // Changing leader anyway, cause the one sending the request stay leader
+                            server.unsetLeader();
+                            isMegaServerLeader = true;
+                            this.name = initFusion.getServerName();
                             // Sending OpCode 14 if changing leader
                             changeLeader(initFusion);
                         } else {
@@ -149,6 +160,7 @@ public class ContextServer {
                 }
                 case 9 -> {
                     var initFusion = (InitFusion) reader.get();
+                    this.name = initFusion.getServerName();
                     // Sending OpCode 14 if changing leader
                     changeLeader(initFusion);
                     System.out.println("Fusion done");
@@ -156,7 +168,7 @@ public class ContextServer {
                 case 12 -> {
                     var adressServer = (InetSocketAddress) reader.get();
                     bufferOut.put((byte)13);
-                    if(fusionInDoing) {
+                    if(server.isFusionInDoing()) {
                         bufferOut.put((byte)0);
                     } else {
                         bufferOut.put((byte)1);
@@ -312,6 +324,7 @@ public class ContextServer {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         isServer = true;
+        logger.log(Level.INFO, "ON EST LA");
         if(server.isLeader()) {
             // Fusion init
             bufferOut.put((byte) 8);
