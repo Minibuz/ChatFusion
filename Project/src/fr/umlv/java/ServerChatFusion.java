@@ -25,8 +25,10 @@ public class ServerChatFusion {
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
 	private final Map<String, String> clients = new HashMap<>();
-	private SocketChannel fusionSc = SocketChannel.open();
+	private final SocketChannel fusionSc = SocketChannel.open();
 	private boolean isLeader = true;
+
+	private boolean fusionInDoing = false;
 	private final List<String> members = new ArrayList<>();
 
 	public ServerChatFusion(String name, int port) throws IOException {
@@ -59,6 +61,10 @@ public class ServerChatFusion {
 	}
 
 	public SocketChannel getFusionSc() { return fusionSc; }
+
+	public boolean isFusionInDoing() {
+		return fusionInDoing;
+	}
 
 	public void launch() throws IOException {
 		serverSocketChannel.configureBlocking(false);
@@ -182,12 +188,22 @@ public class ServerChatFusion {
 	 *
 	 * @param msg
 	 */
-	public void broadcast(Message msg, SelectionKey toNotSend) {
+	public void broadcast(Message msg, boolean fromLeaderServer, String server) {
 		for (var key : selector.keys()) {
 			var context = (ContextServer) key.attachment();
 			if (key.attachment() != null) {
-				if(context.isServer() && !isLeader()) { return; }
-				((ContextServer) key.attachment()).queueMessage(msg);
+				if(!context.isServer()) {
+					context.queueMessage(msg);
+					continue;
+				}
+				if(isLeader && !server.equals(context.getName())) {
+					logger.info("YES");
+					context.queueMessage(msg);
+					continue;
+				}
+				if(!isLeader && !fromLeaderServer && context.isMegaServerLeader()) {
+					context.queueMessage(msg);
+				}
 			}
 		}
 	}
