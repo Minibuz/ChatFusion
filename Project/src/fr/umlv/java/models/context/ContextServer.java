@@ -137,6 +137,7 @@ public class ContextServer {
                             bufferOut.put((byte) 9);
                             fillInitFusion();
                             // TODO : Sending OpCode 14 if changing leader
+                            // Changing leader anyway, cause the one sending the request stay leader
                         } else {
                             // FUSION INIT KO
                             bufferOut.put((byte) 10);
@@ -148,17 +149,28 @@ public class ContextServer {
                 case 9 -> {
                     var initFusion = (InitFusion) reader.get();
                     // TODO : Sending OpCode 14 if changing leader
+                    // Changing leader anyway, cause the one sending the request stay leader
                     server.unsetLeader(); // Tmp : not correct
                     System.out.println("Fusion done");
                 }
                 case 12 -> {
                     var adressServer = (InetSocketAddress) reader.get();
-                    bufferOut.put((byte)12);
+                    bufferOut.put((byte)13);
                     if(fusionInDoing) {
                         bufferOut.put((byte)0);
                     } else {
                         bufferOut.put((byte)1);
                     }
+                    try {
+                        server.swapFusion(adressServer);
+                    } catch (IOException e) {
+                        logger.info("SwapFusion broken");
+                        return;
+                    }
+                }
+                case 14 -> {
+                    // Receive change leader
+                    var adressServer = (InetSocketAddress) reader.get();
                     try {
                         server.swapFusion(adressServer);
                     } catch (IOException e) {

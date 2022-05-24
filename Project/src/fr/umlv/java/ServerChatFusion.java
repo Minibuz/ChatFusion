@@ -53,7 +53,10 @@ public class ServerChatFusion {
 
 	public boolean isLeader() { return isLeader; }
 
-	public void unsetLeader() { isLeader = false; }
+	public void unsetLeader() {
+		isLeader = false;
+		// Close all connections used as leader
+	}
 
 	public SocketChannel getFusionSc() { return fusionSc; }
 
