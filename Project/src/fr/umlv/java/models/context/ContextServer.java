@@ -136,6 +136,7 @@ public class ContextServer {
                 case 8 -> {
                     var initFusion = (InitFusion) reader.get();
                     if (server.isLeader()) {
+                        System.out.println("test");
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
                             // Send OpCode 9
                             bufferOut.put((byte) 9);
@@ -160,6 +161,7 @@ public class ContextServer {
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
+                        server.getFusionSc().close();
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
