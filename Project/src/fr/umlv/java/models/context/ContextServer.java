@@ -160,7 +160,6 @@ public class ContextServer {
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
-                        System.out.println("test");
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
@@ -376,7 +375,7 @@ public class ContextServer {
         for (var o : address) {
             bufferOut.put(o);
         }
-        bufferOut.putInt(socket.getLocalPort());
+        bufferOut.putInt(socket.getPort());
     }
 
     public void fillFusionRequest(InetSocketAddress socket) {
