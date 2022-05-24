@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -188,6 +189,17 @@ public class ServerChatFusion {
 			if (key.attachment() != null) {
 				if(context.isServer() && !isLeader()) { return; }
 				((ContextServer) key.attachment()).queueMessage(msg);
+			}
+		}
+	}
+
+	public void broadcastLeader(InetSocketAddress newLeader, SelectionKey exceptCurrentLeader) {
+		for (var key : selector.keys()) {
+			var context = (ContextServer) key.attachment();
+			if (key.attachment() != null) {
+				if(context.isServer() && !key.equals(exceptCurrentLeader)) {
+					((ContextServer) key.attachment()).sendChangingLeader(newLeader);
+				}
 			}
 		}
 	}

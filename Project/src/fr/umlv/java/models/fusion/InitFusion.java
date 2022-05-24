@@ -1,14 +1,15 @@
 package fr.umlv.java.models.fusion;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
 
 public class InitFusion {
     private final String serverName;
-    private final SocketAddress socketAddress;
+    private final InetSocketAddress socketAddress;
     private final List<String> members;
 
-    public InitFusion(String serverName, SocketAddress socketAddress, List<String> members) {
+    public InitFusion(String serverName, InetSocketAddress socketAddress, List<String> members) {
         this.serverName = serverName;
         this.socketAddress = socketAddress;
         this.members = members;
@@ -22,7 +23,7 @@ public class InitFusion {
         return serverName;
     }
 
-    public SocketAddress getSocketAddress() {
+    public InetSocketAddress getSocketAddress() {
         return socketAddress;
     }
 }
