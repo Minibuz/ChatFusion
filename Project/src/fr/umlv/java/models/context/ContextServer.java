@@ -132,14 +132,12 @@ public class ContextServer {
                 case 4 -> {
                     var msg = (Message) reader.get();
                     server.broadcast(msg, true, name);
-                    System.out.println("test");
                 }
                 case 8 -> {
                     var initFusion = (InitFusion) reader.get();
                     if (server.isLeader()) {
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
                             // Send OpCode 9
-                            logger.info("OpCode 9");
                             bufferOut.put((byte) 9);
                             fillInitFusion();
                             changeLeader(initFusion);
