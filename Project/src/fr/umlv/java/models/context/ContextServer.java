@@ -156,20 +156,43 @@ public class ContextServer {
                     changeLeader(initFusion);
                     System.out.println("Fusion done");
                 }
-                case 12 -> {
-                    var adressServer = (InetSocketAddress) reader.get();
-                    bufferOut.put((byte)13);
-                    if(server.isFusionInDoing()) {
-                        bufferOut.put((byte)0);
-                    } else {
-                        bufferOut.put((byte)1);
-                    }
+                case 10 -> {
+                    logger.info("Failed Fusion");
+                }
+                case 11 -> {
+                    var addressServer = (InetSocketAddress) reader.get();
                     try {
-                        server.swapFusion(adressServer);
+                        server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
                         return;
                     }
+                }
+                case 12 -> {
+                    var addressServer = (InetSocketAddress) reader.get();
+                    bufferOut.put((byte)13);
+                    if(server.isFusionInDoing()) {
+                        bufferOut.put((byte)0);
+                        return;
+                    } else {
+                        bufferOut.put((byte)1);
+                    }
+                    try {
+                        server.swapFusion(addressServer);
+                    } catch (IOException e) {
+                        logger.info("SwapFusion broken");
+                        return;
+                    }
+                }
+                case 13 -> {
+                    var status = bufferIn.get();
+                    if (status == 0) {
+                        logger.info("Fusion impossible");
+                    }
+                    if (status == 1) {
+                        logger.info("Fusion initiated");
+                    }
+
                 }
                 case 14 -> {
                     // Receive change leader
@@ -293,7 +316,6 @@ public class ContextServer {
      */
 
     public void doWrite() throws IOException {
-        //TODO
         processOut();
         bufferOut.flip();
         var length_write = sc.write(bufferOut);
@@ -316,16 +338,9 @@ public class ContextServer {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         isServer = true;
-        logger.log(Level.INFO, "ON EST LA");
-        if(server.isLeader()) {
-            // Fusion init
-            bufferOut.put((byte) 8);
-            fillInitFusion();
-        } else {
-            // Fusion request
-            bufferOut.put((byte) 12);
-            fillFusionRequest();
-        }
+        // Fusion init
+        bufferOut.put((byte) 8);
+        fillInitFusion();
         key.interestOps(SelectionKey.OP_WRITE);
     }
 
@@ -341,6 +356,7 @@ public class ContextServer {
         var type = address.length == 4 ? 4 : 6;
         bufferOut.put((byte) type);
         for (var o : address) {
+            System.out.println(o);
             bufferOut.put(o);
         }
         bufferOut.putInt(socket.getLocalPort());
@@ -365,16 +381,16 @@ public class ContextServer {
         bufferOut.putInt(socket.getLocalPort());
     }
 
-    public void fillFusionRequest() {
+    public void fillFusionRequest(InetSocketAddress socket) {
         bufferOut.put((byte) 12);
-        var socket = server.getFusionSc().socket();
-        var address = socket.getInetAddress().getAddress();
+        var address = socket.getAddress().getAddress();
         var type = address.length == 4 ? 4 : 6;
         bufferOut.put((byte) type);
         for (var o : address) {
             bufferOut.put(o);
         }
-        bufferOut.putInt(socket.getLocalPort());
+        bufferOut.putInt(socket.getPort());
+        updateInterestOps();
     }
 
     public void changeLeader(InitFusion initFusion) {

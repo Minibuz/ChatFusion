@@ -121,7 +121,13 @@ public class ServerChatFusion {
 			var strings = command.split(" ");
         	switch(strings[0]) {
         		case "FUSION" -> {
-					swapFusion(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
+					if (isLeader) {
+						swapFusion(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
+					} else {
+						// Fusion request
+						var context = (ContextServer) fusionSc.keyFor(selector).attachment();
+						context.fillFusionRequest(new InetSocketAddress(strings[1], Integer.parseInt(strings[2])));
+					}
 				}
         	}
         }
