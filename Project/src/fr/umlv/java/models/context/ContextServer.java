@@ -7,13 +7,14 @@ import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.logging.Logger;
 
 public class ContextServer {
@@ -31,6 +32,7 @@ public class ContextServer {
     private Reader<?> reader;
     private byte currentOpCode = -1;
     private boolean isServer;
+    private boolean fusionInDoing = false;
 
     public ContextServer(ServerChatFusion server, SelectionKey key) {
         this.key = key;
@@ -42,6 +44,7 @@ public class ContextServer {
         return name;
     }
 
+    public boolean isServer() { return isServer; }
     /**
      * Process the content of bufferIn
      *
@@ -135,6 +138,7 @@ public class ContextServer {
                             fillInitFusion();
                             // TODO : Sending OpCode 14 if changing leader
                         } else {
+                            // FUSION INIT KO
                             bufferOut.put((byte) 10);
                         }
                     } else {
@@ -146,6 +150,21 @@ public class ContextServer {
                     // TODO : Sending OpCode 14 if changing leader
                     server.unsetLeader(); // Tmp : not correct
                     System.out.println("Fusion done");
+                }
+                case 12 -> {
+                    var adressServer = (InetSocketAddress) reader.get();
+                    bufferOut.put((byte)12);
+                    if(fusionInDoing) {
+                        bufferOut.put((byte)0);
+                    } else {
+                        bufferOut.put((byte)1);
+                    }
+                    try {
+                        server.swapFusion(adressServer);
+                    } catch (IOException e) {
+                        logger.info("SwapFusion broken");
+                        return;
+                    }
                 }
             }
             currentOpCode = -1;
@@ -189,7 +208,7 @@ public class ContextServer {
         var login_buffer = UTF8.encode(msg.getLogin());
         var msg_buffer = UTF8.encode(msg.getText());
         var servername_buffer = UTF8.encode(server.getServerName());
-        if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
+        if (bufferOut.remaining() < servername_buffer.remaining() + login_buffer.remaining() + msg_buffer.remaining() + Byte.BYTES + Integer.BYTES*3) {
             return;
         }
         queue.removeFirst();
@@ -281,8 +300,15 @@ public class ContextServer {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         isServer = true;
-        bufferOut.put((byte) 8);
-        fillInitFusion();
+        if(server.isLeader()) {
+            // Fusion init
+            bufferOut.put((byte) 8);
+            fillInitFusion();
+        } else {
+            // Fusion request
+            bufferOut.put((byte) 12);
+            fillFusionRequest();
+        }
         key.interestOps(SelectionKey.OP_WRITE);
     }
 
@@ -312,6 +338,18 @@ public class ContextServer {
 
     public void fillInitFusionFwd() {
         bufferOut.put((byte) 11);
+        var socket = server.getFusionSc().socket();
+        var address = socket.getInetAddress().getAddress();
+        var type = address.length == 4 ? 4 : 6;
+        bufferOut.put((byte) type);
+        for (var o : address) {
+            bufferOut.put(o);
+        }
+        bufferOut.putInt(socket.getLocalPort());
+    }
+
+    public void fillFusionRequest() {
+        bufferOut.put((byte) 12);
         var socket = server.getFusionSc().socket();
         var address = socket.getInetAddress().getAddress();
         var type = address.length == 4 ? 4 : 6;
