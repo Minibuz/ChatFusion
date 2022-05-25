@@ -161,7 +161,7 @@ public class ContextServer {
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
-                        server.getFusionSc().close();
+                        server.getFusionSc().close(); // Need to close or double redirection from the initial server
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
