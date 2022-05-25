@@ -14,7 +14,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ContextServer {
@@ -215,10 +214,7 @@ public class ContextServer {
             currentOpCode = -1;
             return true;
         }
-        if (status == Reader.ProcessStatus.REFILL) {
-            return true;
-        }
-        return false;
+        return status == Reader.ProcessStatus.REFILL;
     }
 
     /**

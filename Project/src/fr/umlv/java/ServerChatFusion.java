@@ -25,9 +25,8 @@ public class ServerChatFusion {
 	private final ArrayBlockingQueue<String> queue;
 	private final Thread console;
 	private final Map<String, String> clients = new HashMap<>();
-	private SocketChannel fusionSc = SocketChannel.open();
+	private SocketChannel fusionSc = SocketChannel.open(); // TODO megaserver key to permit forward
 	private boolean isLeader = true;
-
 	private boolean fusionInDoing = false;
 	private final List<String> members = new ArrayList<>();
 
