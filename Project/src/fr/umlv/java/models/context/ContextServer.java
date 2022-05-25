@@ -1,6 +1,7 @@
 package fr.umlv.java.models.context;
 
 import fr.umlv.java.ServerChatFusion;
+import fr.umlv.java.models.BufferMessage;
 import fr.umlv.java.models.fusion.InitFusion;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
@@ -89,7 +90,10 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), null);
                         this.name = user.login();
-                        fillValidConnexion();
+                        bufferOut.put(new BufferMessage.BufferMessageBuilder(2)
+                                        .setServerName(server.getServerName())
+                                        .build()
+                                        .toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -99,7 +103,10 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), user.password());
                         this.name = user.login();
-                        fillValidConnexion();
+                        bufferOut.put(new BufferMessage.BufferMessageBuilder(2)
+                                .setServerName(server.getServerName())
+                                .build()
+                                .toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -321,13 +328,6 @@ public class ContextServer {
         }
         bufferOut.compact();
         updateInterestOps();
-    }
-
-    private void fillValidConnexion() {
-        bufferOut.put((byte) 2);
-        var serverBuffer = UTF8.encode(server.getServerName());
-        bufferOut.putInt(serverBuffer.remaining());
-        bufferOut.put(serverBuffer);
     }
 
     public void doConnect() throws IOException {

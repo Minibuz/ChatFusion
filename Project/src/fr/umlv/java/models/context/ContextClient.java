@@ -1,5 +1,6 @@
 package fr.umlv.java.models.context;
 
+import fr.umlv.java.models.BufferMessage;
 import fr.umlv.java.models.ConnectionStatut;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.readers.Reader;
@@ -96,10 +97,10 @@ public class ContextClient {
      */
     public void processOut() {
         if(connected == ConnectionStatut.NOT_CONNECTED) {
-            bufferOut.put((byte) 0);
-            var bufferLogin = UTF_8.encode(login);
-            bufferOut.putInt(bufferLogin.remaining())
-                    .put(bufferLogin);
+            bufferOut.put(new BufferMessage.BufferMessageBuilder(0)
+                    .setLogin(login)
+                    .build()
+                    .toByteBuffer());
             connected = ConnectionStatut.CONNECTION;
         }
         if (connected == ConnectionStatut.CONNECTION) {

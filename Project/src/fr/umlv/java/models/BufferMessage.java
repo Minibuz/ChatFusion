@@ -47,7 +47,7 @@ public class BufferMessage {
             case 0 -> anonymousLogin(builder);
             case 1 -> passwordLogin(builder);
             case 2 -> acceptedLogin(builder);
-            case 3 -> refusedLogin(builder);
+            /*case 3 -> refusedLogin(builder);
             case 4 -> message(builder);
             case 5 -> privateMessage(builder);
             case 6 -> privateFile(builder);
@@ -58,7 +58,7 @@ public class BufferMessage {
             case 12 -> fusionRequest(builder);
             case 13 -> fusionRequestResp(builder);
             case 14 -> fusionChangeLeader(builder);
-            case 15 -> fusionMerge(builder);
+            case 15 -> fusionMerge(builder);*/
             default -> throw new IllegalArgumentException("Unexpected value: " + opcode);
         }
     }
@@ -89,6 +89,15 @@ public class BufferMessage {
     }
 
     private void acceptedLogin(BufferMessageBuilder builder) {
+        var serverName = UTF_8.encode(builder.serverName);
+        if(bufferOut.remaining() >= Integer.BYTES + Integer.BYTES +serverName.remaining()) {
+            throw new IllegalStateException();
+        }
+        if(serverName.remaining() > 100) {
+            throw new IllegalArgumentException();
+        }
+
+        bufferOut.put(opcode).putInt(serverName.remaining()).put(serverName);
     }
 
     public ByteBuffer toByteBuffer() {
@@ -116,8 +125,8 @@ public class BufferMessage {
         private String leaderAddress;
         private Byte status;
 
-        public BufferMessageBuilder(Byte opcode) {
-            this.opcode = opcode;
+        public BufferMessageBuilder(int opcode) {
+            this.opcode = (byte)opcode;
         }
 
         public BufferMessageBuilder setLogin(String login) {
