@@ -68,7 +68,7 @@ public class ContextServer {
                 currentOpCode = -1;
                 return;
             }
-            if (name == null && currentOpCode == 8) {
+            if (name == null && (currentOpCode == 8 || currentOpCode == 9)) {
                 isServer = true;
             }
         }
@@ -132,21 +132,16 @@ public class ContextServer {
                 case 4 -> {
                     var msg = (Message) reader.get();
                     server.broadcast(msg, true, name);
-                    System.out.println("test");
                 }
                 case 8 -> {
                     var initFusion = (InitFusion) reader.get();
                     if (server.isLeader()) {
+                        System.out.println("test");
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
                             // Send OpCode 9
-                            logger.info("OpCode 9");
                             bufferOut.put((byte) 9);
                             fillInitFusion();
-                            // TODO : Sending OpCode 14 if changing leader
-                            // Changing leader anyway, cause the one sending the request stay leader
-                            server.unsetLeader();
-                            isMegaServerLeader = true;
-                            this.name = initFusion.getServerName();
+                            changeLeader(initFusion);
                         } else {
                             // FUSION INIT KO
                             bufferOut.put((byte) 10);
@@ -157,23 +152,47 @@ public class ContextServer {
                 }
                 case 9 -> {
                     var initFusion = (InitFusion) reader.get();
-                    this.name = initFusion.getServerName();
+                    changeLeader(initFusion);
                     System.out.println("Fusion done");
                 }
-                case 12 -> {
-                    var adressServer = (InetSocketAddress) reader.get();
-                    bufferOut.put((byte)13);
-                    if(server.isFusionInDoing()) {
-                        bufferOut.put((byte)0);
-                    } else {
-                        bufferOut.put((byte)1);
-                    }
+                case 10 -> {
+                    logger.info("Failed Fusion");
+                }
+                case 11 -> {
+                    var addressServer = (InetSocketAddress) reader.get();
                     try {
-                        server.swapFusion(adressServer);
+                        server.getFusionSc().close(); // Need to close or double redirection from the initial server
+                        server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
                         return;
                     }
+                }
+                case 12 -> {
+                    var addressServer = (InetSocketAddress) reader.get();
+                    bufferOut.put((byte)13);
+                    if(server.isFusionInDoing()) {
+                        bufferOut.put((byte)0);
+                        return;
+                    } else {
+                        bufferOut.put((byte)1);
+                    }
+                    try {
+                        server.swapFusion(addressServer);
+                    } catch (IOException e) {
+                        logger.info("SwapFusion broken");
+                        return;
+                    }
+                }
+                case 13 -> {
+                    var status = bufferIn.get();
+                    if (status == 0) {
+                        logger.info("Fusion impossible");
+                    }
+                    if (status == 1) {
+                        logger.info("Fusion initiated");
+                    }
+
                 }
                 case 14 -> {
                     // Receive change leader
@@ -184,6 +203,7 @@ public class ContextServer {
                         logger.info("SwapFusion broken");
                         return;
                     }
+                    silentlyClose();
                 }
             }
             currentOpCode = -1;
@@ -296,7 +316,6 @@ public class ContextServer {
      */
 
     public void doWrite() throws IOException {
-        //TODO
         processOut();
         bufferOut.flip();
         var length_write = sc.write(bufferOut);
@@ -319,16 +338,9 @@ public class ContextServer {
         if (!sc.finishConnect())
             return; // the selector gave a bad hint
         isServer = true;
-        logger.log(Level.INFO, "ON EST LA");
-        if(server.isLeader()) {
-            // Fusion init
-            bufferOut.put((byte) 8);
-            fillInitFusion();
-        } else {
-            // Fusion request
-            bufferOut.put((byte) 12);
-            fillFusionRequest();
-        }
+        // Fusion init
+        bufferOut.put((byte) 8);
+        fillInitFusion();
         key.interestOps(SelectionKey.OP_WRITE);
     }
 
@@ -365,18 +377,40 @@ public class ContextServer {
         for (var o : address) {
             bufferOut.put(o);
         }
-        bufferOut.putInt(socket.getLocalPort());
+        bufferOut.putInt(socket.getPort());
     }
 
-    public void fillFusionRequest() {
+    public void fillFusionRequest(InetSocketAddress socket) {
         bufferOut.put((byte) 12);
-        var socket = server.getFusionSc().socket();
-        var address = socket.getInetAddress().getAddress();
+        var address = socket.getAddress().getAddress();
         var type = address.length == 4 ? 4 : 6;
         bufferOut.put((byte) type);
         for (var o : address) {
             bufferOut.put(o);
         }
-        bufferOut.putInt(socket.getLocalPort());
+        bufferOut.putInt(socket.getPort());
+        updateInterestOps();
+    }
+
+    public void changeLeader(InitFusion initFusion) {
+        this.name = initFusion.getServerName();
+        isMegaServerLeader = false;
+        if (server.getServerName().compareTo(initFusion.getServerName()) > 0) { // Changing leader depending on the names
+            isMegaServerLeader = true;
+            server.unsetLeader();
+            server.broadcastLeader(initFusion.getSocketAddress(), name);
+        }
+    }
+
+    public void sendChangingLeader(InetSocketAddress newLeader) {
+        bufferOut.put((byte) 14);
+        var address = newLeader.getAddress().getAddress();
+        var type = address.length == 4 ? 4 : 6;
+        bufferOut.put((byte) type);
+        for (var o : address) {
+            bufferOut.put(o);
+        }
+        bufferOut.putInt(newLeader.getPort());
+        updateInterestOps();
     }
 }

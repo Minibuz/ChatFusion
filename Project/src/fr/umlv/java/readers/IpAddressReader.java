@@ -66,7 +66,8 @@ public class IpAddressReader implements Reader<InetAddress> {
 	private byte[] decodeAddress() {
 		address_buffer.flip();
 		byte[] adr = new byte[address_buffer.remaining()];
-		for (var i = 0; i<address_buffer.remaining(); i++) {
+		var length = address_buffer.remaining();
+		for (var i = 0; i<length; i++) {
 			adr[i] = address_buffer.get();
 		}
 		return adr;
@@ -85,6 +86,7 @@ public class IpAddressReader implements Reader<InetAddress> {
 		status = ProcessStatus.REFILL;
 		size_buffer.clear();
 		address_buffer = null;
+		address = null;
 	}
 
 }
