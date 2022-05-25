@@ -1,11 +1,9 @@
 package fr.umlv.java.models.context;
 
-import fr.umlv.java.models.BufferMessage;
+import fr.umlv.java.models.WriterMessage;
 import fr.umlv.java.models.ConnectionStatut;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.readers.Reader;
-import fr.umlv.java.readers.login.LoginAcceptedReader;
-import fr.umlv.java.readers.message.MessageReader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,7 +12,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.List;
 
 public class ContextClient {
 
@@ -97,7 +94,7 @@ public class ContextClient {
      */
     public void processOut() {
         if(connected == ConnectionStatut.NOT_CONNECTED) {
-            bufferOut.put(new BufferMessage.BufferMessageBuilder(0)
+            bufferOut.put(new WriterMessage.BufferMessageBuilder(0)
                     .setLogin(login)
                     .build()
                     .toByteBuffer());

@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class BufferMessage {
+public class WriterMessage {
 
     private static final int BUFFER_SIZE = 10000;
 
@@ -41,7 +41,7 @@ public class BufferMessage {
 //    private Byte status;
     private ByteBuffer bufferOut = ByteBuffer.allocate(BUFFER_SIZE);
 
-    private BufferMessage(BufferMessageBuilder builder) {
+    private WriterMessage(BufferMessageBuilder builder) {
         this.opcode = builder.opcode;
         switch (opcode) {
             case 0 -> anonymousLogin(builder);
@@ -202,8 +202,8 @@ public class BufferMessage {
             return this;
         }
 
-        public BufferMessage build() {
-            return new BufferMessage(this);
+        public WriterMessage build() {
+            return new WriterMessage(this);
         }
     }
 }
