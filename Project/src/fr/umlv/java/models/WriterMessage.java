@@ -47,9 +47,9 @@ public class WriterMessage {
             case 0 -> anonymousLogin(builder);
             case 1 -> passwordLogin(builder);
             case 2 -> acceptedLogin(builder);
-            /*case 3 -> refusedLogin(builder);
+            case 3 -> refusedLogin(builder);
             case 4 -> message(builder);
-            case 5 -> privateMessage(builder);
+            /*case 5 -> privateMessage(builder);
             case 6 -> privateFile(builder);
             case 8 -> fusionInit(builder);
             case 9 -> fusionInitOk(builder);
@@ -65,39 +65,76 @@ public class WriterMessage {
 
     private void anonymousLogin(BufferMessageBuilder builder) {
         var login = UTF_8.encode(builder.login);
-        if(bufferOut.remaining() >= Integer.BYTES + Integer.BYTES + login.remaining()) {
+        if(bufferOut.remaining() < Integer.BYTES + Integer.BYTES + login.remaining()) {
             throw new IllegalStateException();
         }
         if(login.remaining() > 30) {
             throw new IllegalArgumentException();
         }
 
-        bufferOut.put(opcode).putInt(login.remaining()).put(login);
+        bufferOut.put(opcode)
+                .putInt(login.remaining())
+                .put(login);
     }
 
     private void passwordLogin(BufferMessageBuilder builder) {
         var login = UTF_8.encode(builder.login);
         var password = UTF_8.encode(builder.password);
-        if(bufferOut.remaining() >= Integer.BYTES + Integer.BYTES + login.remaining() + Integer.BYTES + password.remaining()) {
+        if(bufferOut.remaining() < Byte.BYTES + Integer.BYTES + login.remaining() + Integer.BYTES + password.remaining()) {
             throw new IllegalStateException();
         }
         if(login.remaining() > 30 || password.remaining() > 30) {
             throw new IllegalArgumentException();
         }
 
-        bufferOut.put(opcode).putInt(login.remaining()).put(login).putInt(password.remaining()).put(password);
+        bufferOut.put(opcode)
+                .putInt(login.remaining())
+                .put(login)
+                .putInt(password.remaining())
+                .put(password);
     }
 
     private void acceptedLogin(BufferMessageBuilder builder) {
         var serverName = UTF_8.encode(builder.serverName);
-        if(bufferOut.remaining() >= Integer.BYTES + Integer.BYTES +serverName.remaining()) {
+        if(bufferOut.remaining() < Byte.BYTES + Integer.BYTES +serverName.remaining()) {
             throw new IllegalStateException();
         }
         if(serverName.remaining() > 100) {
             throw new IllegalArgumentException();
         }
 
-        bufferOut.put(opcode).putInt(serverName.remaining()).put(serverName);
+        bufferOut.put(opcode)
+                .putInt(serverName.remaining())
+                .put(serverName);
+    }
+
+    private void refusedLogin(BufferMessageBuilder builder) {
+        if(bufferOut.remaining() < Byte.BYTES) {
+            throw new IllegalStateException();
+        }
+
+        bufferOut.put(opcode);
+    }
+
+    private void message(BufferMessageBuilder builder) {
+        var serverName = UTF_8.encode(builder.serverName);
+        var login = UTF_8.encode(builder.login);
+        var msg = UTF_8.encode(builder.msg);
+        if(bufferOut.remaining() < Byte.BYTES + Integer.BYTES + serverName.remaining()
+                + Integer.BYTES + login.remaining() + Integer.BYTES + msg.remaining()) {
+            throw new IllegalStateException();
+        }
+        if(serverName.remaining() > 100 || login.remaining() > 30 || msg.remaining() > 1024) {
+            throw new IllegalArgumentException();
+        }
+
+        bufferOut.put(opcode)
+                .putInt(serverName.remaining())
+                .put(serverName)
+                .putInt(login.remaining())
+                .put(login)
+                .putInt(msg.remaining())
+                .put(msg);
     }
 
     public ByteBuffer toByteBuffer() {
