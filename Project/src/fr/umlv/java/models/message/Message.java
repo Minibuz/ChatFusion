@@ -3,17 +3,17 @@ package fr.umlv.java.models.message;
 public class Message {
     private final String serverName;
     private final String login;
-    private final String text;
+    private final String message;
 
-    public Message(String login, String text) {
+    public Message(String login, String message) {
         this.serverName = null;
         this.login = login;
-        this.text = text;
+        this.message = message;
     }
-    public Message(String serverName, String login, String text) {
+    public Message(String serverName, String login, String message) {
         this.serverName = serverName;
         this.login = login;
-        this.text = text;
+        this.message = message;
     }
     public String getServerName() {
         return serverName;
@@ -21,7 +21,7 @@ public class Message {
     public String getLogin() {
         return login;
     }
-    public String getText() {
-        return text;
+    public String getMessage() {
+        return message;
     }
 }

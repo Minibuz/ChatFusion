@@ -1,11 +1,12 @@
 package fr.umlv.java.models.context;
 
 import fr.umlv.java.ServerChatFusion;
-import fr.umlv.java.models.WriterMessage;
 import fr.umlv.java.models.fusion.InitFusion;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
+import fr.umlv.java.writer.AcceptedLoginWriter;
+import fr.umlv.java.writer.MessageWriter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -90,10 +91,7 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), null);
                         this.name = user.login();
-                        bufferOut.put(new WriterMessage.BufferMessageBuilder(2)
-                                        .setServerName(server.getServerName())
-                                        .build()
-                                        .toByteBuffer());
+                        bufferOut.put(new AcceptedLoginWriter(server.getServerName()).toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -103,10 +101,7 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), user.password());
                         this.name = user.login();
-                        bufferOut.put(new WriterMessage.BufferMessageBuilder(2)
-                                .setServerName(server.getServerName())
-                                .build()
-                                .toByteBuffer());
+                        bufferOut.put(new AcceptedLoginWriter(server.getServerName()).toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -247,17 +242,11 @@ public class ContextServer {
         if(msg == null) {
             return;
         }
-        if(msg.getText().isEmpty() || msg.getText().isBlank()) {
+        if(msg.getMessage().isEmpty() || msg.getMessage().isBlank()) {
             logger.info("Empty message");
             return;
         }
-        bufferOut.put(
-                new WriterMessage.BufferMessageBuilder(4)
-                        .setLogin(msg.getLogin())
-                        .setServerName(msg.getServerName())
-                        .setMsg(msg.getText())
-                        .build()
-                        .toByteBuffer());
+        bufferOut.put(new MessageWriter(msg).toByteBuffer());
         queue.removeFirst();
     }
 

@@ -5,26 +5,26 @@ public class PrivateMessage {
     private final String serverDst;
     private final String loginSrc;
     private final String loginDst;
-    private final String text;
+    private final String message;
 
-    public PrivateMessage(String loginSrc, String serverDst, String loginDst, String text) {
+    public PrivateMessage(String loginSrc, String serverDst, String loginDst, String message) {
         this.serverSrc = null;
         this.serverDst = serverDst;
         this.loginSrc = loginSrc;
         this.loginDst = loginDst;
-        this.text = text;
+        this.message = message;
     }
 
-    public PrivateMessage(String serverSrc, String loginSrc, String serverDst, String loginDst, String text) {
+    public PrivateMessage(String serverSrc, String loginSrc, String serverDst, String loginDst, String message) {
         this.serverSrc = serverSrc;
         this.serverDst = serverDst;
         this.loginSrc = loginSrc;
         this.loginDst = loginDst;
-        this.text = text;
+        this.message = message;
     }
 
-    public String getText() {
-        return text;
+    public String getMessage() {
+        return message;
     }
 
     public String getServerSrc() {

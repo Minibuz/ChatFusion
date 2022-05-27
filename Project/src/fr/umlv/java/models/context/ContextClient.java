@@ -1,10 +1,10 @@
 package fr.umlv.java.models.context;
 
-import fr.umlv.java.Client;
-import fr.umlv.java.models.WriterMessage;
 import fr.umlv.java.models.ConnectionStatut;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.readers.Reader;
+import fr.umlv.java.writer.AnonymousLoginWriter;
+import fr.umlv.java.writer.MessageWriter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -75,7 +75,7 @@ public class ContextClient {
             case 3 -> connected = ConnectionStatut.NOT_CONNECTED;
             case 4 -> {
                 var msg = (Message) reader.get();
-                System.out.println(msg.getLogin() + " : " + msg.getText());
+                System.out.println(msg.getLogin() + " : " + msg.getMessage());
             }
         }
         currentOpCode = -1;
@@ -97,10 +97,7 @@ public class ContextClient {
      */
     public void processOut() {
         if(connected == ConnectionStatut.NOT_CONNECTED) {
-            bufferOut.put(new WriterMessage.BufferMessageBuilder(0)
-                    .setLogin(login)
-                    .build()
-                    .toByteBuffer());
+            bufferOut.put(new AnonymousLoginWriter(login).toByteBuffer());
             connected = ConnectionStatut.CONNECTION;
         }
         if (connected == ConnectionStatut.CONNECTION) {
@@ -110,17 +107,11 @@ public class ContextClient {
         if(msg == null) {
             return;
         }
-        if(msg.getText().isEmpty() || msg.getText().isBlank()) {
+        if(msg.getMessage().isEmpty() || msg.getMessage().isBlank()) {
             logger.info("Empty message");
             return;
         }
-        bufferOut.put(
-                new WriterMessage.BufferMessageBuilder(4)
-                        .setLogin(msg.getLogin())
-                        .setServerName(serverName)
-                        .setMsg(msg.getText())
-                        .build()
-                        .toByteBuffer());
+        bufferOut.put(new MessageWriter(msg).toByteBuffer());
         queue.removeFirst();
     }
 
