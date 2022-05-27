@@ -138,7 +138,7 @@ public class WriterMessage {
     }
 
     public ByteBuffer toByteBuffer() {
-        return bufferOut;
+        return bufferOut.flip();
     }
 
     public static class BufferMessageBuilder {

@@ -1,5 +1,6 @@
 package fr.umlv.java.models.context;
 
+import fr.umlv.java.Client;
 import fr.umlv.java.models.WriterMessage;
 import fr.umlv.java.models.ConnectionStatut;
 import fr.umlv.java.models.message.Message;
@@ -12,9 +13,11 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.logging.Logger;
 
 public class ContextClient {
 
+    static private final Logger logger = Logger.getLogger(ContextClient.class.getName());
     static private final Charset UTF_8 = StandardCharsets.UTF_8;
     static private int BUFFER_SIZE = 10_000;
     private final SelectionKey key;
@@ -104,23 +107,21 @@ public class ContextClient {
             return;
         }
         var msg = queue.peekFirst();
-        if (msg == null) {
+        if(msg == null) {
             return;
         }
-        var login_buffer = UTF_8.encode(msg.getLogin());
-        var msg_buffer = UTF_8.encode(msg.getText());
-        var servername_buffer = UTF_8.encode(serverName);
-        if (bufferOut.remaining() < login_buffer.remaining() + msg_buffer.remaining() + Integer.BYTES*2) {
+        if(msg.getText().isEmpty() || msg.getText().isBlank()) {
+            logger.info("Empty message");
             return;
         }
+        bufferOut.put(
+                new WriterMessage.BufferMessageBuilder(4)
+                        .setLogin(msg.getLogin())
+                        .setServerName(serverName)
+                        .setMsg(msg.getText())
+                        .build()
+                        .toByteBuffer());
         queue.removeFirst();
-        bufferOut.put((byte) 4);
-        bufferOut.putInt(servername_buffer.remaining());
-        bufferOut.put(servername_buffer);
-        bufferOut.putInt(login_buffer.remaining());
-        bufferOut.put(login_buffer);
-        bufferOut.putInt(msg_buffer.remaining());
-        bufferOut.put(msg_buffer);
     }
 
     /**

@@ -244,23 +244,21 @@ public class ContextServer {
      */
     private void processOut() {
         var msg = queue.peekFirst();
-        if (msg == null) {
+        if(msg == null) {
             return;
         }
-        var login_buffer = UTF8.encode(msg.getLogin());
-        var msg_buffer = UTF8.encode(msg.getText());
-        var servername_buffer = UTF8.encode(server.getServerName());
-        if (bufferOut.remaining() < servername_buffer.remaining() + login_buffer.remaining() + msg_buffer.remaining() + Byte.BYTES + Integer.BYTES*3) {
+        if(msg.getText().isEmpty() || msg.getText().isBlank()) {
+            logger.info("Empty message");
             return;
         }
+        bufferOut.put(
+                new WriterMessage.BufferMessageBuilder(4)
+                        .setLogin(msg.getLogin())
+                        .setServerName(msg.getServerName())
+                        .setMsg(msg.getText())
+                        .build()
+                        .toByteBuffer());
         queue.removeFirst();
-        bufferOut.put((byte) 4);
-        bufferOut.putInt(servername_buffer.remaining());
-        bufferOut.put(servername_buffer);
-        bufferOut.putInt(login_buffer.remaining());
-        bufferOut.put(login_buffer);
-        bufferOut.putInt(msg_buffer.remaining());
-        bufferOut.put(msg_buffer);
     }
 
     /**

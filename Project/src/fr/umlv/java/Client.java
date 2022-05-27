@@ -55,9 +55,12 @@ public class Client {
             try (var scanner = new Scanner(System.in)) {
                 while (scanner.hasNextLine()) {
                     var msg = scanner.nextLine();
-                    var msgBuffer = UTF_8.encode(msg).remaining();
-                    if(msgBuffer > 1024) {
-                        logger.info("Non non non, c'est pas bien");
+                    if(msg.isEmpty() || msg.isBlank()) {
+                        logger.info("Message is empty");
+                        continue;
+                    }
+                    if(UTF_8.encode(msg).remaining() > 1024) {
+                        logger.info("Message is too long");
                         continue;
                     }
                     sendCommand(msg);
