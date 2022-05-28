@@ -40,6 +40,7 @@ public class MessageReader implements Reader<Message> {
 		if (status != ProcessStatus.DONE) {
 			throw new IllegalStateException("Not right process status.");
 		}
+		System.out.println(list);
 		return new Message(list.get(0), list.get(1), list.get(2));
 	}
 

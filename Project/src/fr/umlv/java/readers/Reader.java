@@ -10,6 +10,8 @@ import fr.umlv.java.readers.message.PrivateMessageReader;
 
 import java.nio.ByteBuffer;
 
+import static fr.umlv.java.models.OpCode.*;
+
 public interface Reader<T> {
 
     public static enum ProcessStatus { DONE, REFILL, ERROR };
@@ -21,7 +23,7 @@ public interface Reader<T> {
     public void reset();
 
     static Reader<?> findReader(int value) {
-        return switch (OpCode.getOpCode(value)) {
+        return switch (OpCode.getOpCode((byte)value).orElseThrow()) {
             case LOGIN_ANONYMOUS -> new LoginAnonymousReader();
             case LOGIN_PASSWORD -> throw new IllegalArgumentException("Not supported"); // Even if kinda exist
             case LOGIN_ACCEPTED -> new LoginAcceptedReader();
@@ -31,7 +33,7 @@ public interface Reader<T> {
             case FILE_PRIVATE -> null; // TODO
             case FUSION_INIT, FUSION_INIT_OK -> new FusionInitReader();
             case FUSION_INIT_FWD, FUSION_REQUEST, FUSION_CHANGE_LEADER -> new SocketReader();
-            case FUSION_REQUEST_RESP -> new StatusReader();
+            case FUSION_ANSWER -> new StatusReader();
             case FUSION_MERGE -> new StringReader();
         };
     }
