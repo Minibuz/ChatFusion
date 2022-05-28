@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class AnonymousLoginWriter {
+public class AnonymousLoginWriter implements Writer {
 
     private static final int SIZE_MAX = Byte.BYTES + Integer.BYTES + 30 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);

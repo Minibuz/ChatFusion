@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class PasswordLoginWriter {
+public class PasswordLoginWriter implements Writer {
 
     private static final int SIZE_MAX = Byte.BYTES +
             Integer.BYTES + 30 * Byte.BYTES +

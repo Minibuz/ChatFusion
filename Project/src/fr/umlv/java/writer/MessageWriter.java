@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class MessageWriter {
+public class MessageWriter implements Writer {
 
     private static final int SIZE_MAX = Byte.BYTES +
             Integer.BYTES + 100 * Byte.BYTES +

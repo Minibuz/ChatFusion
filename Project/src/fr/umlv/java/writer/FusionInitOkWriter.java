@@ -11,10 +11,11 @@ import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class FusionInitWriter implements Writer {
+public class FusionInitOkWriter implements Writer {
+
     private ByteBuffer bufferOut;
 
-    public FusionInitWriter(String serverName, ServerSocket serverSocket, List<String> servers) {
+    public FusionInitOkWriter(String serverName, ServerSocket serverSocket, List<String> servers) {
         bufferOut = ByteBuffer.allocate(
                 Byte.BYTES + Integer.BYTES + 100 * Byte.BYTES +
                         Byte.BYTES + 8 * 4 * 4 * Byte.BYTES +
@@ -50,7 +51,7 @@ public class FusionInitWriter implements Writer {
             throw new IllegalArgumentException();
         }
 
-        bufferOut.put(OpCode.FUSION_INIT.getValue())
+        bufferOut.put(OpCode.FUSION_INIT_OK.getValue())
                 .putInt(bufferServerName.remaining())
                 .put(bufferServerName)
                 .put(type)
