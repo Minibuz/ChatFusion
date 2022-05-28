@@ -54,7 +54,7 @@ public class FusionInitWriter {
                 .putInt(bufferServerName.remaining())
                 .put(bufferServerName)
                 .put(type)
-                .put(bufferAddress)
+                .put(bufferAddress.flip())
                 .putInt(bufferPort)
                 .putInt(servers.size());
         for(var bufferMember : listBufferMember) {
