@@ -6,6 +6,7 @@ import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 import fr.umlv.java.writer.AcceptedLoginWriter;
+import fr.umlv.java.writer.FusionInitWriter;
 import fr.umlv.java.writer.MessageWriter;
 
 import java.io.IOException;
@@ -80,6 +81,7 @@ public class ContextServer {
         // If a server is messaging us
         if(isServer) {
             processServer();
+            currentOpCode = -1;
             return;
         }
 
@@ -116,7 +118,7 @@ public class ContextServer {
             switch(currentOpCode) {
                 case 4:
                     var msg = (Message) reader.get();
-                    server.broadcast(msg, false, name);
+                    server.broadcast(msg, false, msg.getServerName());
                     break;
                 case 5:
                     break;
@@ -207,7 +209,6 @@ public class ContextServer {
                     silentlyClose();
                 }
             }
-            currentOpCode = -1;
     }
 
     private boolean processEntry() {
@@ -322,8 +323,9 @@ public class ContextServer {
             return; // the selector gave a bad hint
         isServer = true;
         // Fusion init
-        bufferOut.put((byte) 8);
-        fillInitFusion();
+        bufferOut.put(
+                new FusionInitWriter(server.getServerName(), server.getServerSocketChannel().socket(), server.getMembers())
+                    .toByteBuffer());
         key.interestOps(SelectionKey.OP_WRITE);
     }
 

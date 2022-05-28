@@ -87,6 +87,7 @@ public class ContextClient {
      * @param msg
      */
     public void queueMessage(Message msg) {
+        msg.setServerName(this.serverName);
         queue.add(msg);
         processOut();
         updateInterestOps();
