@@ -13,10 +13,10 @@ public class PasswordLoginWriter implements Writer {
             Integer.BYTES + 30 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public PasswordLoginWriter(String login, String password) {
+    public PasswordLoginWriter(int bufferSize, String login, String password) {
         var bufferLogin = UTF_8.encode(login);
         var bufferPassword = UTF_8.encode(password);
-        if(SIZE_MAX < Byte.BYTES +
+        if(bufferSize < Byte.BYTES +
                 Integer.BYTES + bufferLogin.remaining() +
                 Integer.BYTES + bufferPassword.remaining()) {
             throw new IllegalStateException();

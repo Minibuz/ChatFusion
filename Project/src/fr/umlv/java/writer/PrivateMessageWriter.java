@@ -17,14 +17,14 @@ public class PrivateMessageWriter implements Writer {
             Integer.BYTES + 1024 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public PrivateMessageWriter(PrivateMessage privateMessage) {
+    public PrivateMessageWriter(int bufferSize, PrivateMessage privateMessage) {
         var bufferServerSrc = UTF_8.encode(privateMessage.getServerSrc());
         var bufferLoginSrc = UTF_8.encode(privateMessage.getLoginSrc());
         var bufferServerDst = UTF_8.encode(privateMessage.getServerDst());
         var bufferLoginDst = UTF_8.encode(privateMessage.getLoginDst());
         var bufferMessage = UTF_8.encode(privateMessage.getMessage());
 
-        if(bufferOut.remaining() < Byte.BYTES + Integer.BYTES + bufferServerSrc.remaining()
+        if(bufferSize < Byte.BYTES + Integer.BYTES + bufferServerSrc.remaining()
                 + Integer.BYTES + bufferLoginSrc.remaining()
                 + Integer.BYTES + bufferServerDst.remaining()
                 + Integer.BYTES + bufferLoginDst.remaining()

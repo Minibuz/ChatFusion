@@ -11,9 +11,9 @@ public class AnonymousLoginWriter implements Writer {
     private static final int SIZE_MAX = Byte.BYTES + Integer.BYTES + 30 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public AnonymousLoginWriter(String login) {
+    public AnonymousLoginWriter(int bufferSize, String login) {
         var bufferLogin = UTF_8.encode(login);
-        if(SIZE_MAX < Integer.BYTES + Integer.BYTES + bufferLogin.remaining()) {
+        if(bufferSize < Integer.BYTES + Integer.BYTES + bufferLogin.remaining()) {
             throw new IllegalStateException();
         }
         if(bufferLogin.remaining() > 30) {

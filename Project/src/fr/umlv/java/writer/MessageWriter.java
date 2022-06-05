@@ -15,11 +15,11 @@ public class MessageWriter implements Writer {
             Integer.BYTES + 1024 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public MessageWriter(Message msg) {
+    public MessageWriter(int bufferSize, Message msg) {
         var bufferServerName = UTF_8.encode(msg.getServerName());
         var bufferLogin = UTF_8.encode(msg.getLogin());
         var bufferMessage = UTF_8.encode(msg.getMessage());
-        if(bufferOut.remaining() < Byte.BYTES + Integer.BYTES + bufferServerName.remaining()
+        if(bufferSize < Byte.BYTES + Integer.BYTES + bufferServerName.remaining()
                 + Integer.BYTES + bufferLogin.remaining() + Integer.BYTES + bufferMessage.remaining()) {
             throw new IllegalStateException();
         }

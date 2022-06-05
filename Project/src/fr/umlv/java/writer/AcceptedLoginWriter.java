@@ -11,9 +11,9 @@ public class AcceptedLoginWriter implements Writer {
     private static final int SIZE_MAX = Byte.BYTES + Integer.BYTES + 100 * Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public AcceptedLoginWriter(String serverName) {
+    public AcceptedLoginWriter(int bufferSize, String serverName) {
         var bufferServerName = UTF_8.encode(serverName);
-        if(SIZE_MAX < Byte.BYTES + Integer.BYTES + bufferServerName.remaining()) {
+        if(bufferSize < Byte.BYTES + Integer.BYTES + bufferServerName.remaining()) {
             throw new IllegalStateException();
         }
         if(bufferServerName.remaining() > 100) {

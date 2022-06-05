@@ -6,6 +6,7 @@ import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
 import fr.umlv.java.writer.AcceptedLoginWriter;
+import fr.umlv.java.writer.FusionInitOkWriter;
 import fr.umlv.java.writer.FusionInitWriter;
 import fr.umlv.java.writer.MessageWriter;
 
@@ -93,7 +94,7 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), null);
                         this.name = user.login();
-                        bufferOut.put(new AcceptedLoginWriter(server.getServerName()).toByteBuffer());
+                        bufferOut.put(new AcceptedLoginWriter(bufferOut.remaining(), server.getServerName()).toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -103,7 +104,7 @@ public class ContextServer {
                     if (!server.getClients().containsKey(user.login())) {
                         server.getClients().put(user.login(), user.password());
                         this.name = user.login();
-                        bufferOut.put(new AcceptedLoginWriter(server.getServerName()).toByteBuffer());
+                        bufferOut.put(new AcceptedLoginWriter(bufferOut.remaining(), server.getServerName()).toByteBuffer());
                         break;
                     }
                     bufferOut.put((byte) 3);
@@ -141,9 +142,9 @@ public class ContextServer {
                     if (server.isLeader()) {
                         System.out.println("test");
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
-                            // Send OpCode 9
-                            bufferOut.put((byte) 9);
-                            fillInitFusion();
+                            bufferOut.put(
+                                    new FusionInitOkWriter(bufferOut.remaining(), server.getServerName(), server.getServerSocketChannel().socket(), server.getMembers())
+                                            .toByteBuffer());
                             changeLeader(initFusion);
                         } else {
                             // FUSION INIT KO
@@ -247,7 +248,7 @@ public class ContextServer {
             logger.info("Empty message");
             return;
         }
-        bufferOut.put(new MessageWriter(msg).toByteBuffer());
+        bufferOut.put(new MessageWriter(bufferOut.remaining(), msg).toByteBuffer());
         queue.removeFirst();
     }
 
@@ -324,7 +325,7 @@ public class ContextServer {
         isServer = true;
         // Fusion init
         bufferOut.put(
-                new FusionInitWriter(server.getServerName(), server.getServerSocketChannel().socket(), server.getMembers())
+                new FusionInitWriter(bufferOut.remaining(), server.getServerName(), server.getServerSocketChannel().socket(), server.getMembers())
                     .toByteBuffer());
         key.interestOps(SelectionKey.OP_WRITE);
     }
