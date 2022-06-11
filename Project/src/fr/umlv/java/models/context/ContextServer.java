@@ -158,9 +158,7 @@ public class ContextServer {
                     changeLeader(initFusion);
                     System.out.println("Fusion done");
                 }
-                case 10 -> {
-                    logger.info("Failed Fusion");
-                }
+                case 10 -> logger.info("Failed Fusion");
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
@@ -168,7 +166,6 @@ public class ContextServer {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
-                        return;
                     }
                 }
                 case 12 -> {
@@ -184,7 +181,6 @@ public class ContextServer {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
-                        return;
                     }
                 }
                 case 13 -> {
@@ -221,11 +217,6 @@ public class ContextServer {
         return status == Reader.ProcessStatus.REFILL;
     }
 
-    /**
-     * Add a message to the message queue, tries to fill bufferOut and updateInterestOps
-     *
-     * @param msg
-     */
     public void queueMessage(Message msg) {
         if (name == null && !isServer) { // Not connected : can't see messages
             return;
@@ -279,14 +270,6 @@ public class ContextServer {
         }
     }
 
-    /**
-     * Performs the read action on sc
-     *
-     * The convention is that both buffers are in write-mode before the call to
-     * doRead and after the call
-     *
-     * @throws IOException
-     */
     public void doRead() throws IOException {
         if (sc.read(bufferIn) == -1) {
             logger.warning("Client closed connexion");
@@ -299,15 +282,6 @@ public class ContextServer {
         }
         updateInterestOps();
     }
-
-    /**
-     * Performs the write action on sc
-     *
-     * The convention is that both buffers are in write-mode before the call to
-     * doWrite and after the call
-     *
-     * @throws IOException
-     */
 
     public void doWrite() throws IOException {
         processOut();
