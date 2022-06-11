@@ -1,14 +1,11 @@
 package fr.umlv.java;
 
-import fr.umlv.java.models.Commands;
-import fr.umlv.java.models.context.ContextClient;
-import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.context.ContextServer;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.utils.Helpers;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
@@ -36,7 +33,7 @@ public class ServerChatFusion {
 		serverSocketChannel.bind(address);
 		serverName = name;
 		selector = Selector.open();
-		this.queue = new ArrayBlockingQueue<String>(10);
+		this.queue = new ArrayBlockingQueue<>(10);
 		this.console = new Thread(this::consoleRun);
 	}
 
@@ -95,24 +92,11 @@ public class ServerChatFusion {
             logger.info("Console thread has been interrupted");
         }
     }
-    
-    /**
-     * Send instructions to the selector via a BlockingQueue and wake it up
-     *
-     * @param msg
-     * @throws InterruptedException
-     */
 
     private void sendCommand(String msg) throws InterruptedException {
         queue.add(msg);
         selector.wakeup();
     }
-
-    /**
-     * Processes the command from the BlockingQueue 
-     * @throws IOException 
-     * @throws InterruptedException 
-     */
 
     private void processCommands() throws IOException {
         var command = queue.poll();
@@ -179,7 +163,7 @@ public class ServerChatFusion {
 	}
 
 	private void silentlyClose(SelectionKey key) {
-		Channel sc = (Channel) key.channel();
+		Channel sc = key.channel();
 		try {
 			clients.remove(((ContextServer) key.attachment()).getName());
 			sc.close();
@@ -188,11 +172,6 @@ public class ServerChatFusion {
 		}
 	}
 
-	/**
-	 * Add a message to all connected clients queue
-	 *
-	 * @param msg
-	 */
 	public void broadcast(Message msg, boolean fromLeaderServer, String server) {
 		for (var key : selector.keys()) {
 			var context = (ContextServer) key.attachment();

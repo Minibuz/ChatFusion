@@ -5,32 +5,29 @@ import fr.umlv.java.readers.Reader;
 
 import java.nio.ByteBuffer;
 
-public class StatusReader implements Reader<Boolean> {
+public class StatusReader implements Reader<Byte> {
 
-    private boolean statusFusion;
+    private byte statusFusion = -1;
     private ProcessStatus status = ProcessStatus.REFILL;
-    private final IntReader reader = new IntReader();
 
     @Override
     public ProcessStatus process(ByteBuffer bb) {
         if (status == ProcessStatus.DONE || status == ProcessStatus.ERROR) {
             throw new IllegalStateException();
         }
-        var readerStatus = reader.process(bb);
-        if (readerStatus == ProcessStatus.ERROR) {
-            status = ProcessStatus.ERROR;
-            return status;
+        bb.flip();
+        try {
+            if (bb.remaining() >= 1) {
+                statusFusion = bb.get();
+                status = ProcessStatus.DONE;
+            }
+        } finally {
+            bb.compact();
         }
-        if (readerStatus == ProcessStatus.REFILL) {
-            status = ProcessStatus.REFILL;
-            return status;
-        }
-        statusFusion = reader.get() != 0;
-        status = ProcessStatus.DONE;
         return status;
     }
 
-    public Boolean get() {
+    public Byte get() {
         if (status != ProcessStatus.DONE) {
             throw new IllegalStateException();
         }
@@ -40,7 +37,6 @@ public class StatusReader implements Reader<Boolean> {
     @Override
     public void reset() {
         status = ProcessStatus.REFILL;
-        reader.reset();
-        statusFusion = false;
+        statusFusion = -1;
     }
 }

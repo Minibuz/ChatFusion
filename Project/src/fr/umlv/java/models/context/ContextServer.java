@@ -64,13 +64,14 @@ public class ContextServer {
         if (currentOpCode == -1) {
             bufferIn.flip();
             currentOpCode = bufferIn.get();
+            logger.info("test" + currentOpCode);
             bufferIn.compact();
             reader = Reader.findReader(currentOpCode);
             if (reader == null) {
                 currentOpCode = -1;
                 return;
             }
-            if (name == null && (currentOpCode == 8 || currentOpCode == 9)) {
+            if (name == null && (currentOpCode >= 8)) {
                 isServer = true;
             }
         }
@@ -139,7 +140,6 @@ public class ContextServer {
                 case 8 -> {
                     var initFusion = (InitFusion) reader.get();
                     if (server.isLeader()) {
-                        System.out.println("test");
                         if (initFusion.getMembers().stream().noneMatch(m -> server.getMembers().contains(m))) { // Check names in common
                             // Send OpCode 9
                             bufferOut.put((byte) 9);
@@ -158,9 +158,7 @@ public class ContextServer {
                     changeLeader(initFusion);
                     System.out.println("Fusion done");
                 }
-                case 10 -> {
-                    logger.info("Failed Fusion");
-                }
+                case 10 -> logger.info("Failed Fusion");
                 case 11 -> {
                     var addressServer = (InetSocketAddress) reader.get();
                     try {
@@ -168,7 +166,6 @@ public class ContextServer {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
-                        return;
                     }
                 }
                 case 12 -> {
@@ -184,15 +181,14 @@ public class ContextServer {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
                         logger.info("SwapFusion broken");
-                        return;
                     }
                 }
                 case 13 -> {
-                    var status = bufferIn.get();
-                    if (status == 0) {
+                    var status = (byte) reader.get();
+                    if (status == (byte)0) {
                         logger.info("Fusion impossible");
                     }
-                    if (status == 1) {
+                    if (status == (byte)1) {
                         logger.info("Fusion initiated");
                     }
 
@@ -200,6 +196,7 @@ public class ContextServer {
                 case 14 -> {
                     // Receive change leader
                     var adressServer = (InetSocketAddress) reader.get();
+                    logger.info("swap fusion");
                     try {
                         server.swapFusion(adressServer);
                     } catch (IOException e) {
@@ -220,11 +217,6 @@ public class ContextServer {
         return status == Reader.ProcessStatus.REFILL;
     }
 
-    /**
-     * Add a message to the message queue, tries to fill bufferOut and updateInterestOps
-     *
-     * @param msg
-     */
     public void queueMessage(Message msg) {
         if (name == null && !isServer) { // Not connected : can't see messages
             return;
@@ -278,14 +270,6 @@ public class ContextServer {
         }
     }
 
-    /**
-     * Performs the read action on sc
-     *
-     * The convention is that both buffers are in write-mode before the call to
-     * doRead and after the call
-     *
-     * @throws IOException
-     */
     public void doRead() throws IOException {
         if (sc.read(bufferIn) == -1) {
             logger.warning("Client closed connexion");
@@ -293,18 +277,11 @@ public class ContextServer {
             updateInterestOps();
             return;
         }
-        processIn();
+        while(bufferIn.position() != 0) {
+            processIn();
+        }
         updateInterestOps();
     }
-
-    /**
-     * Performs the write action on sc
-     *
-     * The convention is that both buffers are in write-mode before the call to
-     * doWrite and after the call
-     *
-     * @throws IOException
-     */
 
     public void doWrite() throws IOException {
         processOut();
