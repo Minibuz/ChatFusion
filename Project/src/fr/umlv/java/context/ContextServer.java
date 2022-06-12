@@ -134,7 +134,6 @@ public class ContextServer {
             }
         }
         currentOpCode = -1;
-        updateInterestOps();
     }
 
     private void processServer() {
@@ -181,13 +180,9 @@ public class ContextServer {
                 }
                 case 12 -> {
                     var addressServer = (InetSocketAddress) reader.get();
-                    bufferOut.put((byte)13);
-                    if(server.isFusionInDoing()) {
-                        bufferOut.put((byte)0);
-                        return;
-                    } else {
-                        bufferOut.put((byte)1);
-                    }
+
+                    bufferOut.put(new FusionRequestOkWriter(bufferOut.remaining(), server.isFusionInDoing()?(byte)0:(byte)1)
+                            .toByteBuffer());
                     try {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
@@ -336,14 +331,8 @@ public class ContextServer {
     }
 
     public void sendChangingLeader(InetSocketAddress newLeader) {
-        bufferOut.put((byte) 14);
-        var address = newLeader.getAddress().getAddress();
-        var type = address.length == 4 ? 4 : 6;
-        bufferOut.put((byte) type);
-        for (var o : address) {
-            bufferOut.put(o);
-        }
-        bufferOut.putInt(newLeader.getPort());
+        bufferOut.put(new FusionChangeLeaderWriter(bufferOut.remaining(), newLeader)
+                .toByteBuffer());
         updateInterestOps();
     }
 }
