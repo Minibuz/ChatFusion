@@ -1,6 +1,6 @@
 package fr.umlv.java;
 
-import fr.umlv.java.models.context.ContextServer;
+import fr.umlv.java.context.ContextServer;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.utils.Helpers;
 

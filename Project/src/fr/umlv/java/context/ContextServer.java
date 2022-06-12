@@ -1,4 +1,4 @@
-package fr.umlv.java.models.context;
+package fr.umlv.java.context;
 
 import fr.umlv.java.ServerChatFusion;
 import fr.umlv.java.models.fusion.InitFusion;
