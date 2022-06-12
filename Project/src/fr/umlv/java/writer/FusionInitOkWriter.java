@@ -24,7 +24,6 @@ public class FusionInitOkWriter implements Writer {
 
         var bufferServerName = UTF_8.encode(serverName);
         var address = serverSocket.getInetAddress().getAddress();
-        System.out.println(Arrays.toString(address));
         var bufferPort = serverSocket.getLocalPort();
         var type = address.length == 4 ? (byte)4 : (byte)6;
         var bufferAddress = ByteBuffer.allocate(8 * 4 * 4 * Byte.BYTES);

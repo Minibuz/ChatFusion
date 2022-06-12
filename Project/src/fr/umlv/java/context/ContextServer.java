@@ -2,26 +2,22 @@ package fr.umlv.java.context;
 
 import fr.umlv.java.ServerChatFusion;
 import fr.umlv.java.models.fusion.InitFusion;
-import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
+import fr.umlv.java.models.message.Message;
 import fr.umlv.java.readers.Reader;
 import fr.umlv.java.writer.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.logging.Logger;
 
 public class ContextServer {
     static private final Logger logger = Logger.getLogger(ContextServer.class.getName());
     private static final int BUFFER_SIZE = 10000;
-    private static final Charset UTF8 = StandardCharsets.UTF_8;
     private final SelectionKey key;
     private final SocketChannel sc;
     private final ByteBuffer bufferIn = ByteBuffer.allocate(BUFFER_SIZE);
@@ -158,7 +154,7 @@ public class ContextServer {
                         }
                     } else {
                         bufferOut.put(
-                                new FusionInitForwardWriter(bufferOut.remaining(), server.getServerSocketChannel().socket())
+                                new FusionInitForwardWriter(bufferOut.remaining(), server.getFusionSc().socket())
                                         .toByteBuffer()
                         ); // Sending OpCode 11
                     }
