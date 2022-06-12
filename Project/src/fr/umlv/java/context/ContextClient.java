@@ -1,4 +1,4 @@
-package fr.umlv.java.models.context;
+package fr.umlv.java.context;
 
 import fr.umlv.java.models.ConnectionStatut;
 import fr.umlv.java.models.message.Message;

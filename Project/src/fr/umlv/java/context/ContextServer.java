@@ -1,17 +1,15 @@
-package fr.umlv.java.models.context;
+package fr.umlv.java.context;
 
 import fr.umlv.java.ServerChatFusion;
 import fr.umlv.java.models.fusion.InitFusion;
 import fr.umlv.java.models.message.Message;
 import fr.umlv.java.models.login.User;
 import fr.umlv.java.readers.Reader;
-import fr.umlv.java.writer.AcceptedLoginWriter;
-import fr.umlv.java.writer.FusionInitOkWriter;
-import fr.umlv.java.writer.FusionInitWriter;
-import fr.umlv.java.writer.MessageWriter;
+import fr.umlv.java.writer.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -98,7 +96,10 @@ public class ContextServer {
                         bufferOut.put(new AcceptedLoginWriter(bufferOut.remaining(), server.getServerName()).toByteBuffer());
                         break;
                     }
-                    bufferOut.put((byte) 3);
+                    bufferOut.put(
+                            new RefusedLoginWriter(bufferOut.remaining())
+                            .toByteBuffer()
+                    );
                     break;
                 case 1: // This shouldn't happen
                     user = (User)reader.get();
@@ -108,7 +109,10 @@ public class ContextServer {
                         bufferOut.put(new AcceptedLoginWriter(bufferOut.remaining(), server.getServerName()).toByteBuffer());
                         break;
                     }
-                    bufferOut.put((byte) 3);
+                    bufferOut.put(
+                            new RefusedLoginWriter(bufferOut.remaining())
+                                    .toByteBuffer()
+                    );
                     break;
                 default:
                     // Error
@@ -147,11 +151,16 @@ public class ContextServer {
                                             .toByteBuffer());
                             changeLeader(initFusion);
                         } else {
-                            // FUSION INIT KO
-                            bufferOut.put((byte) 10);
+                            bufferOut.put(
+                                    new FusionInitKoWriter(bufferOut.remaining())
+                                            .toByteBuffer()
+                            );
                         }
                     } else {
-                        fillInitFusionFwd(); // Sending OpCode 11
+                        bufferOut.put(
+                                new FusionInitForwardWriter(bufferOut.remaining(), server.getServerSocketChannel().socket())
+                                        .toByteBuffer()
+                        ); // Sending OpCode 11
                     }
                 }
                 case 9 -> {
@@ -171,13 +180,9 @@ public class ContextServer {
                 }
                 case 12 -> {
                     var addressServer = (InetSocketAddress) reader.get();
-                    bufferOut.put((byte)13);
-                    if(server.isFusionInDoing()) {
-                        bufferOut.put((byte)0);
-                        return;
-                    } else {
-                        bufferOut.put((byte)1);
-                    }
+
+                    bufferOut.put(new FusionRequestOkWriter(bufferOut.remaining(), server.isFusionInDoing()?(byte)0:(byte)1)
+                            .toByteBuffer());
                     try {
                         server.swapFusion(addressServer);
                     } catch (IOException e) {
@@ -307,51 +312,11 @@ public class ContextServer {
         key.interestOps(SelectionKey.OP_WRITE);
     }
 
-    /**
-     * Filling InitFusion request without the OpCode
-     */
-    public void fillInitFusion() {
-        var server_buffer = UTF8.encode(server.getServerName());
-        bufferOut.putInt(server_buffer.remaining());
-        bufferOut.put(server_buffer);
-        var socket = server.getServerSocketChannel().socket();
-        var address = socket.getInetAddress().getAddress();
-        var type = address.length == 4 ? 4 : 6;
-        bufferOut.put((byte) type);
-        for (var o : address) {
-            bufferOut.put(o);
-        }
-        bufferOut.putInt(socket.getLocalPort());
-        var members = server.getMembers();
-        bufferOut.putInt(members.size());
-        for (var member : members) {
-            var member_buffer = UTF8.encode(member);
-            bufferOut.putInt(member_buffer.remaining());
-            bufferOut.put(member_buffer);
-        }
-    }
-
-    public void fillInitFusionFwd() {
-        bufferOut.put((byte) 11);
-        var socket = server.getFusionSc().socket();
-        var address = socket.getInetAddress().getAddress();
-        var type = address.length == 4 ? 4 : 6;
-        bufferOut.put((byte) type);
-        for (var o : address) {
-            bufferOut.put(o);
-        }
-        bufferOut.putInt(socket.getPort());
-    }
-
     public void fillFusionRequest(InetSocketAddress socket) {
-        bufferOut.put((byte) 12);
-        var address = socket.getAddress().getAddress();
-        var type = address.length == 4 ? 4 : 6;
-        bufferOut.put((byte) type);
-        for (var o : address) {
-            bufferOut.put(o);
-        }
-        bufferOut.putInt(socket.getPort());
+        bufferOut.put(
+                new FusionRequestWriter(bufferOut.remaining(), socket)
+                        .toByteBuffer()
+        );
         updateInterestOps();
     }
 
@@ -366,14 +331,8 @@ public class ContextServer {
     }
 
     public void sendChangingLeader(InetSocketAddress newLeader) {
-        bufferOut.put((byte) 14);
-        var address = newLeader.getAddress().getAddress();
-        var type = address.length == 4 ? 4 : 6;
-        bufferOut.put((byte) type);
-        for (var o : address) {
-            bufferOut.put(o);
-        }
-        bufferOut.putInt(newLeader.getPort());
+        bufferOut.put(new FusionChangeLeaderWriter(bufferOut.remaining(), newLeader)
+                .toByteBuffer());
         updateInterestOps();
     }
 }
