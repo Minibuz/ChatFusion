@@ -59,6 +59,7 @@ public class ContextServer {
         if (currentOpCode == -1) {
             bufferIn.flip();
             currentOpCode = bufferIn.get();
+            logger.info("test" + currentOpCode);
             bufferIn.compact();
             reader = Reader.findReader(currentOpCode);
             if (reader == null) {
@@ -153,7 +154,7 @@ public class ContextServer {
                         }
                     } else {
                         bufferOut.put(
-                                new FusionInitForwardWriter(bufferOut.remaining(), server.getServerSocketChannel().socket())
+                                new FusionInitForwardWriter(bufferOut.remaining(), server.getFusionSc().socket())
                                         .toByteBuffer()
                         ); // Sending OpCode 11
                     }
