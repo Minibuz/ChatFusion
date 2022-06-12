@@ -1,5 +1,7 @@
 # ChatFusion
 
+Projet réalisés par Leo Buzelin et Etienne Alexandre<br><br>
+
 Pour lancer le serveur :<br>
 *java -jar Project/Server.jar serverName port*<br>
 
