@@ -98,7 +98,7 @@ public class ContextClient {
      */
     public void processOut() {
         if(connected == ConnectionStatut.NOT_CONNECTED) {
-            bufferOut.put(new AnonymousLoginWriter(login).toByteBuffer());
+            bufferOut.put(new AnonymousLoginWriter(bufferOut.remaining(), login).toByteBuffer());
             connected = ConnectionStatut.CONNECTION;
         }
         if (connected == ConnectionStatut.CONNECTION) {
@@ -112,7 +112,7 @@ public class ContextClient {
             logger.info("Empty message");
             return;
         }
-        bufferOut.put(new MessageWriter(msg).toByteBuffer());
+        bufferOut.put(new MessageWriter(bufferOut.remaining(), msg).toByteBuffer());
         queue.removeFirst();
     }
 

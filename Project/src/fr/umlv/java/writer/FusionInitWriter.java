@@ -14,7 +14,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class FusionInitWriter implements Writer {
     private ByteBuffer bufferOut;
 
-    public FusionInitWriter(String serverName, ServerSocket serverSocket, List<String> servers) {
+    public FusionInitWriter(int bufferSize, String serverName, ServerSocket serverSocket, List<String> servers) {
         bufferOut = ByteBuffer.allocate(
                 Byte.BYTES + Integer.BYTES + 100 * Byte.BYTES +
                         Byte.BYTES + 8 * 4 * 4 * Byte.BYTES +
@@ -39,7 +39,7 @@ public class FusionInitWriter implements Writer {
         }
 
         // VERIFICATION ICI
-        if(bufferOut.remaining() < Byte.BYTES +
+        if(bufferSize < Byte.BYTES +
                 Integer.BYTES + bufferServerName.remaining() +
                 Byte.BYTES + address.length * Byte.BYTES +
                 Integer.BYTES + sizeServers * Byte.BYTES) {

@@ -15,7 +15,7 @@ public class FusionInitOkWriter implements Writer {
 
     private ByteBuffer bufferOut;
 
-    public FusionInitOkWriter(String serverName, ServerSocket serverSocket, List<String> servers) {
+    public FusionInitOkWriter(int bufferSize, String serverName, ServerSocket serverSocket, List<String> servers) {
         bufferOut = ByteBuffer.allocate(
                 Byte.BYTES + Integer.BYTES + 100 * Byte.BYTES +
                         Byte.BYTES + 8 * 4 * 4 * Byte.BYTES +
@@ -40,7 +40,7 @@ public class FusionInitOkWriter implements Writer {
         }
 
         // VERIFICATION ICI
-        if(bufferOut.remaining() < Byte.BYTES +
+        if(bufferSize < Byte.BYTES +
                 Integer.BYTES + bufferServerName.remaining() +
                 Byte.BYTES + address.length * Byte.BYTES +
                 Integer.BYTES + sizeServers * Byte.BYTES) {

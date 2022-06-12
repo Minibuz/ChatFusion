@@ -4,17 +4,17 @@ import fr.umlv.java.models.OpCode;
 
 import java.nio.ByteBuffer;
 
-public class RefusedLoginWriter implements Writer {
+public class FusionInitKoWriter {
 
     private static final int SIZE_MAX = Byte.BYTES;
     private final ByteBuffer bufferOut = ByteBuffer.allocate(SIZE_MAX);
 
-    public RefusedLoginWriter(int bufferSize) {
+    public FusionInitKoWriter(int bufferSize) {
         if(bufferSize < Byte.BYTES) {
-            throw new IllegalStateException();
+            throw new IllegalArgumentException();
         }
 
-        bufferOut.put(OpCode.LOGIN_REFUSED.getValue());
+        bufferOut.put(OpCode.FUSION_INIT_KO.getValue());
     }
 
     public ByteBuffer toByteBuffer() {
